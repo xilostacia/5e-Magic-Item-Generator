@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Random Magic Item Crafter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eceff1; --panel:#f8f9fa; --ink:#1b2430; --muted:#5a6675; --line:#c9d0d6;
+  --accent:#0f6b6b; --accent-ink:#ffffff; --chip:#dde5e8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11171d; --panel:#192129; --ink:#e6ebef; --muted:#93a0ad; --line:#2d3945;
+    --accent:#4fc1b8; --accent-ink:#08201e; --chip:#22303a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11171d; --panel:#192129; --ink:#e6ebef; --muted:#93a0ad; --line:#2d3945;
+  --accent:#4fc1b8; --accent-ink:#08201e; --chip:#22303a;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Alegreya Sans",system-ui,sans-serif;font-size:18px;line-height:1.45}
+main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+h1{font-family:"Alegreya",Georgia,serif;font-size:2.3rem;line-height:1.1;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 22px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:22px}
+select,button{font:inherit;border-radius:8px;border:1px solid var(--line);padding:10px 14px;background:var(--panel);color:var(--ink)}
+button{cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;font-size:1.1rem;padding:12px 22px}
+button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:18px}
+.skeleton{font-family:"Alegreya",Georgia,serif;font-size:1.25rem;line-height:1.5}
+.skeleton b{color:var(--accent)}
+.tag{display:inline-block;background:var(--chip);border-radius:6px;padding:1px 9px;font-size:.95rem;margin-right:6px}
+h2{font-family:"Alegreya",Georgia,serif;font-size:1.4rem;margin:0 0 10px}
+ul.tree{list-style:none;margin:0;padding-left:0}
+ul.tree ul{list-style:none;margin:2px 0 4px;padding-left:20px;border-left:2px solid var(--line)}
+ul.tree li{padding:1px 0 1px 8px}
+.sec{font-weight:700;margin-top:10px}
+.note{color:var(--muted);font-size:.95rem}
+textarea{width:100%;min-height:200px;font:inherit;font-size:.95rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
+.empty{color:var(--muted);text-align:center;padding:40px 10px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Random Magic Item Crafter</h1>
+  <p class="sub">Rolls the full skeleton from your tables, resolves every cascade, then gives you a ready-to-paste prompt for any capable AI model.</p>
+
+  <div class="bar">
+    <button class="primary" id="roll">Roll an item</button>
+    <label class="note" for="forceType">Item type:</label>
+    <select id="forceType">
+      <option value="0">Random (d6)</option>
+      <option value="1">Potion / Scroll</option>
+      <option value="2">Wondrous Item</option>
+      <option value="3">Focus</option>
+      <option value="4">Armor</option>
+      <option value="5">Weapon</option>
+      <option value="6">Ring</option>
+    </select>
+  </div>
+
+  <div id="out"><div class="empty">Press “Roll an item” to begin.</div></div>
+</main>
+
+<script>
+const d = n => 1 + Math.floor(Math.random() * n);
+const node = (t, c = []) => ({ t, c });
+
+/* ---------- TABLES ---------- */
+const TYPE = ["Potion / Scroll","Wondrous Item","Focus","Armor","Weapon","Ring"];
+const FOCUS = ["Wand","Staff","Rod","Orb"];
+const ARMOR = ["Light","Medium","Heavy","Shield (not armor)","Helmet (not armor)","Etc. — gauntlets, greaves, similar (not armor)"];
+const WEAPON = {2:"Club",3:"Whip",4:"Mace",5:"Bow",6:"Staff",7:"Axe",8:"Sword",9:"Hammer",10:"Dagger",11:"Polearm",12:"Spear",13:"Trident",14:"Sickle / Scythe"};
+const WONDROUS = ["Amulet / Necklace","Bag","Barrel","Bead / Marble","Bedroll","Bell","Boat","Bowl","Book","Boots","Bottle / Cup / Jug","Box","Brazier","Brooch","Broom","Candle","Cape","Cards","Carpet / Rug","Chest","Circlet","Cloak / Coat","Crown","Dice","Dust","Eyepatch","Figurine / Statue","Flask","Gemstone","Glasses / Monocle","Gloves","Hat","Headband","Horseshoes","Instrument","Lantern","Manacles","Mirror","Needle","Pot","Quiver","Rope","Saddle","Scarf","Socks","Spyglass","String / Thread","Tent","Thimble","Waterskin","Apron","Banner / Flag","Basket","Belt","Blanket","Bracelet / Bangle","Brush / Comb","Bucket","Chalk","Compass","Doll / Puppet","Fan","Hourglass","Inkpot","Key","Kite","Lock","Magnifying Glass","Mask","Medal / Badge","Mortar and Pestle","Pillow","Pipe","Scale / Balance","Seal / Stamp","Shovel / Spade","Soap","Sundial","Teapot / Kettle","Tongs","Towel","Umbrella / Parasol","Whistle","Whetstone","Writing Quill","Abacus","Anchor","Bellows","Cage","Clock","Door Knocker","Handkerchief","Ladder","Loom","Map","Mousetrap","Platter / Tray","Pulley","Signpost","Wheel"];
+const PRIMARY = ["Summons Something","Allows Different Ability Scores to Be Used","Access Different / New Locations","Provides Abilities in Certain Weather / Conditions / Terrain","Imposes Negative Status on Target","Deals Some Type of Damage","Casts / Replicates a Spell","Gain a Racial Trait","Extra Damage to or Protection from Certain Creatures","Gives You a Boon / Extra Ability","Roll Twice","+1 and Roll Again"];
+const DAMAGE = ["Acid","Cold","Fire","Force","Lightning","Necrotic","Poison","Psychic","Radiant","Thunder"];
+const BOON = ["Increase Stats","Movement Speed / Type","Increase Crit Range / Extra Crit Damage","Temp HP","Gain Senses","Damage Resistance"];
+const ORIG = ["Celestial","Fiendish / Demonic","Primordial / Elemental","Fae","Common Species","Common Species","Common Species","Rare Species","Rare Species","Unplayable / Other Intelligent Species","Aberration","Unknown / Ancient Origin"];
+const COMMON = ["Dragonborn","Dwarf","Elf","Faun","Firbolg","Giantkin","Human","Human","Half-Elf","Half-Orc","Halfling","Orc"];
+const RARE = [
+ ["Aasimar","Awakened Animal","Centaur","Cervan","Changeling","Corvum","Dhampir","Duergar","Eladrin","Fairy","Fey"],
+ ["Gallus","Genasi","Giff","Grung","Hadozee","Harengon","Hedge","Hexblooded","Hobgoblin","Jerbeen","Kame"],
+ ["Kenku","Khenra","Leonin","Lizardfolk","Locathah","Loxodon","Luma","Mapach","Minotaur","Owlin","Plasmoid"],
+ ["Raptor","Reborn","Revenant","Ribbitfolk","Sea Elf","Tabaxi","Tiefling","Triton","Veilmerge","Vulpin","Warforged"]
+];
+const MECH = ["Costs wielder something","Double Edged in Some Way","Has Charges","Awakens / Exalts","Command Word","Buttons to Activate","Requires Attunement","Usable by Spellcaster Only","Usable only by specific Species","Different features in different varieties / sizes","None","Roll Twice"];
+const COST = ["HP","GP","Exhaustion","Morality"];
+const TRAIT = ["Cursed","Anatomical Oddity","Strange Property","Material / Surface","Form / Decoration","Physical Transformation","Elemental / Environmental Theme","Supernatural Theme","Creature / Nature Theme","Exceptional"];
+const TRAIT20 = {
+ 2:["Has a mouth","Has one large eye","Has many small eyes","Has teeth or fangs","Has a tongue","Has ears","Has hair","Has fur","Has visible veins","Has a heartbeat","Breathes","Blinks","Has fingers or tiny hands","Has claws or talons","Has roots","Has tendrils","Bleeds when damaged","Has a recognizable face","Has one or more vestigial limbs","Has a strange internal organ visible through part of its surface"],
+ 3:["Shrinks to pocket size when not in use","Sheds light","Reacts to the presence of a certain species","Looks like a completely different mundane object","Changes appearance depending on the wielder","Changes appearance depending on the weather","Changes appearance at a particular time of day","Floats when released","Slowly rotates or turns on its own","Returns to its owner when called","Produces a faint constant sound","Whispers incomprehensibly","Is always unusually warm","Is always unusually cold","Never becomes dirty","Cannot remain wet","Leaves a temporary trail behind it","Casts an unusual shadow","Has no reflection","Occasionally moves a short distance when nobody is watching"],
+ 4:["Metallic","Gem-encrusted","Camouflage coloration","Spiked","Translucent","Transparent","Mirrored","Iridescent","Pearlescent","Cracked but apparently undamaged","Covered in runes or symbols","Stone-like","Bark-like","Ivory or bone-like","Glass-like","Porcelain-like","Leather-like","Covered in fine scales","Covered in a strange lacquer or glossy coating","Made from an unusual material appropriate to its originator"],
+ 5:["Fancy / Regal","Heavily ornamented","Extremely plain","Ceremonial in appearance","Primitive or crude-looking","Covered in intricate filigree","Patchwork construction","Asymmetrical","Perfectly symmetrical","Impossibly thin or delicate-looking","Unusually bulky","Oversized decorative features","Covered in repeating geometric patterns","Covered in engraved scenes","Covered in writing or inscriptions","Built from interlocking sections","Completely seamless","Decorated with chains, tassels, ribbons, or hanging pieces","Styled after an ancient or obsolete version of the object","Appears unfinished despite functioning normally"],
+ 6:["Scaled","Feathered","Fur-covered","Thorny","Crystalline","Bone-like","Chitinous","Partially organic or fleshy","Appears molten","Appears frozen","Appears partially burned or charred","Appears overgrown with moss","Appears rusted or corroded without being weakened","Constantly drips water","Constantly sheds harmless ash","Constantly sheds dust, sand, or pollen","Slowly grows and retracts small protrusions","Parts of it shift or rearrange themselves","Changes size slightly while being used","Changes shape enough to look handmade differently each time it is examined"],
+ 7:["Fire","Water","Air / Wind","Earth / Stone","Ice / Snow","Lightning","Storm","Ocean","River","Desert","Forest","Swamp","Mountain","Cave / Underground","Volcanic","Arctic","Jungle","Night / Moon","Dawn / Sun","Rain / Mist"],
+ 8:["Spectral / Ghost","Shadow","Radiant / Holy","Necrotic / Death","Arcane","Fey","Fiendish","Celestial","Dream","Nightmare","Blood","Void","Cosmic / Stellar","Time","Fate","Memory","Illusion","Psychic","Soul","Otherworldly / Planar"],
+ 9:["Dragon","Insect","Mammal","Bird / Feather","Floral / Plant / Vine","Reptile","Serpent","Aquatic creature","Arachnid","Fungal","Amphibian","Feline","Canine","Rodent","Hoofed animal","Fish","Crustacean","Mollusk","Worm / Burrowing creature","Specific beast of the creator's choice"]
+};
+
+/* ---------- ROLL LOGIC ---------- */
+function rollDamage(){ const r = d(10); return node(`${r}: ${DAMAGE[r-1]}`); }
+
+function rollPrimary(depth, st){
+  let n = d(12);
+  if (depth > 6 && n >= 11) n = d(10);           // safety cap on runaway cascades
+  const nd = node(`${n}: ${PRIMARY[n-1]}`);
+  if (n === 6) nd.c.push(rollDamage());
+  if (n === 7){ const l = d(10); nd.c.push(node(`Spell level ${l}`)); }
+  if (n === 10){
+    const b = d(6); const bn = node(`${b}: ${BOON[b-1]}`);
+    if (b === 6) bn.c.push(rollDamage());
+    nd.c.push(bn);
+  }
+  if (n === 11){ nd.c.push(rollPrimary(depth+1, st)); nd.c.push(rollPrimary(depth+1, st)); }
+  if (n === 12){ st.bonus++; nd.c.push(node("+1 magical bonus")); nd.c.push(rollPrimary(depth+1, st)); }
+  return nd;
+}
+
+function rollMech(depth){
+  let n = d(12);
+  if (depth > 6 && n === 12) n = d(11);
+  const nd = node(`${n}: ${MECH[n-1]}`);
+  if (n === 1){ const c = d(4); nd.c.push(node(`Cost: ${COST[c-1]}`)); }
+  if (n === 12){ nd.c.push(rollMech(depth+1)); nd.c.push(rollMech(depth+1)); }
+  return nd;
+}
+
+function rollOriginator(){
+  const n = d(12);
+  const nd = node(`${n}: ${ORIG[n-1]}`);
+  if (n === 2){ const r = d(2); nd.c.push(node(r===1?"1: Fiend":"2: Demon")); }
+  if (n === 3){ const r = d(4); nd.c.push(node(`${r}: ${["Air","Earth","Water","Fire"][r-1]}`)); }
+  if (n === 4){ const r = d(2); nd.c.push(node(r===1?"1: Feywild / Auriglade":"2: Shadowfell / Shadenoct")); }
+  if (n >= 5 && n <= 7){ const r = d(12); nd.c.push(node(`${r}: ${COMMON[r-1]}`)); }
+  if (n === 8 || n === 9){
+    const g = d(4); let r = d(12), rerolled = false;
+    while (r === 12){ r = d(12); rerolled = true; }
+    nd.c.push(node(`Group ${g}, ${r}: ${RARE[g-1][r-1]}${rerolled ? " (rolled 12 — rerolled)" : ""}`));
+  }
+  return nd;
+}
+
+function rollTrait(){
+  const n = d(10);
+  const nd = node(`${n}: ${TRAIT[n-1]}`);
+  if (TRAIT20[n]){ const r = d(20); nd.c.push(node(`${r}: ${TRAIT20[n][r-1]}`)); }
+  if (n === 10){ nd.c.push(node(d(2)===1 ? "Legendary (coin flip — table says choose)" : "Sentient (coin flip — table says choose)")); }
+  return nd;
+}
+
+function rollItem(force){
+  const st = { bonus: 0 };
+  const t = force || d(6);
+  const typeNode = node(`${t}: ${TYPE[t-1]}`);
+  let subtype = "";
+  if (t === 3){ const r = d(4); typeNode.c.push(node(`${r}: ${FOCUS[r-1]}`)); subtype = FOCUS[r-1]; }
+  if (t === 4){ const r = d(6); typeNode.c.push(node(`${r}: ${ARMOR[r-1]}`)); subtype = ARMOR[r-1]; }
+  if (t === 5){ const a = d(6), b = d(8); typeNode.c.push(node(`d6 ${a} + d8 ${b} = ${a+b}: ${WEAPON[a+b]}`)); subtype = WEAPON[a+b]; }
+  if (t === 2){ const r = d(100); typeNode.c.push(node(`${r}: ${WONDROUS[r-1]}`)); subtype = WONDROUS[r-1]; }
+
+  const primary = rollPrimary(0, st);
+  const orig = rollOriginator();
+  const mech = [rollMech(0), rollMech(0)];
+  const trait = rollTrait();
+  return { type: typeNode, subtype, primary, orig, mech, trait, bonus: st.bonus, typeName: TYPE[t-1] };
+}
+
+/* ---------- OUTPUT ---------- */
+const esc = s => s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function treeHTML(n){ return `<li>${esc(n.t)}${n.c.length ? `<ul>${n.c.map(treeHTML).join("")}</ul>` : ""}</li>`; }
+function treeText(n, ind = 0){ return "  ".repeat(ind) + "- " + n.t + "\n" + n.c.map(c => treeText(c, ind+1)).join(""); }
+
+function rollsText(r){
+  return `Type:\n${treeText(r.type)}\nPrimary Function:\n${treeText(r.primary)}\nOriginator:\n${treeText(r.orig)}\nMechanics (two separate d12 rolls):\n${r.mech.map(m => treeText(m)).join("")}\nRandom Trait:\n${treeText(r.trait)}` +
+    (r.bonus ? `\nCumulative magical bonus from "+1 and Roll Again" results: +${r.bonus}\n` : "");
+}
+
+function promptText(r){
+  return `Use the attached Random Magic Item Crafter and AI Use Instructions documents. These rolls were already made for me with the crafter tables — do not reroll them. Resolve every cascade and duplicate as the instructions describe, then write the finished item in the default final format (Lore, Statistics, Rolls).
+
+${rollsText(r)}
+Setting notes / constraints: (none — use ordinary D&D assumptions)
+Desired rarity or playable stat block: (your call, include the complete magical rules)`;
+}
+
+let current = null;
+function render(r){
+  current = r;
+  const sub = r.subtype ? ` (${r.subtype})` : "";
+  document.getElementById("out").innerHTML = `
+  <div class="card skeleton">
+    <span class="tag">${esc(r.typeName)}${esc(sub)}</span><br>
+    <b>Originator:</b> ${esc(flat(r.orig))}<br>
+    <b>Trait:</b> ${esc(flat(r.trait))}
+    ${r.bonus ? `<br><b>Bonus:</b> +${r.bonus}` : ""}
+  </div>
+  <div class="card">
+    <h2>Roll path</h2>
+    <ul class="tree">
+      <li class="sec">Type</li>${treeHTML(r.type)}
+      <li class="sec">Primary Function</li>${treeHTML(r.primary)}
+      <li class="sec">Originator</li>${treeHTML(r.orig)}
+      <li class="sec">Mechanics <span class="note">(two separate d12 rolls)</span></li>${r.mech.map(treeHTML).join("")}
+      <li class="sec">Random Trait</li>${treeHTML(r.trait)}
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Prompt for your AI</h2>
+    <p class="note">Give your AI both crafter documents (the tables and the AI instructions), then paste this.</p>
+    <textarea id="prompt" readonly></textarea>
+    <p><button id="copy">Copy prompt</button> <span class="note" id="copied"></span></p>
+  </div>`;
+  const ta = document.getElementById("prompt");
+  ta.value = promptText(r);
+  document.getElementById("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText(ta.value); }
+    catch (e) { ta.select(); try { document.execCommand("copy"); } catch (_) {} }
+    document.getElementById("copied").textContent = "Copied.";
+  };
+}
+function flat(n){ return n.t.replace(/^[^:]*:\s*/, "") + (n.c.length ? " — " + n.c.map(c => c.t.replace(/^[^:]*:\s*/, "")).join(", ") : ""); }
+
+document.getElementById("roll").onclick = () => render(rollItem(+document.getElementById("forceType").value));
+</script>
+</body>
+</html>
