@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Random Magic Item Crafter (AI)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eceff1; --panel:#f8f9fa; --ink:#1b2430; --muted:#5a6675; --line:#c9d0d6;
+  --accent:#0f6b6b; --accent-ink:#ffffff; --chip:#dde5e8; --err:#a12a2a; --ok:#18733f;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11171d; --panel:#192129; --ink:#e6ebef; --muted:#93a0ad; --line:#2d3945;
+    --accent:#4fc1b8; --accent-ink:#08201e; --chip:#22303a; --err:#ff8f8f; --ok:#74d69b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11171d; --panel:#192129; --ink:#e6ebef; --muted:#93a0ad; --line:#2d3945;
+  --accent:#4fc1b8; --accent-ink:#08201e; --chip:#22303a; --err:#ff8f8f; --ok:#74d69b;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Alegreya Sans",system-ui,sans-serif;font-size:18px;line-height:1.45}
+main{max-width:800px;margin:0 auto;padding:28px 18px 60px}
+h1{font-family:"Alegreya",Georgia,serif;font-size:2.3rem;line-height:1.1;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 18px}
+.tabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:2px solid var(--line)}
+.tab{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:10px 16px;font-weight:700;color:var(--muted);margin-bottom:-2px}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:22px}
+select,button,input[type=text],input[type=number]{font:inherit;border-radius:8px;border:1px solid var(--line);padding:10px 14px;background:var(--panel);color:var(--ink)}
+button{cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;font-size:1.1rem;padding:12px 22px}
+button.small{padding:4px 10px;font-size:.9rem}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:18px}
+.skeleton{font-family:"Alegreya",Georgia,serif;font-size:1.25rem;line-height:1.5}
+.skeleton b{color:var(--accent)}
+.tag{display:inline-block;background:var(--chip);border-radius:6px;padding:1px 9px;font-size:.95rem;margin-right:6px}
+h2{font-family:"Alegreya",Georgia,serif;font-size:1.4rem;margin:0 0 10px}
+ul.tree{list-style:none;margin:0;padding-left:0}
+ul.tree ul{list-style:none;margin:2px 0 4px;padding-left:20px;border-left:2px solid var(--line)}
+ul.tree li{padding:1px 0 1px 8px}
+.sec{font-weight:700;margin-top:10px}
+.note{color:var(--muted);font-size:.95rem}
+textarea{width:100%;min-height:160px;font:inherit;font-size:.95rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
+.empty{color:var(--muted);text-align:center;padding:40px 10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.row label{display:flex;align-items:center;gap:6px}
+.grow{flex:1 1 220px;min-width:0}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+input[type=number]{width:80px}
+.msg{min-height:1.4em;font-weight:500;margin:4px 0 0}
+.msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
+.dieinfo{font-weight:700;color:var(--accent)}
+.entries{list-style:none;margin:10px 0 0;padding:0;max-height:380px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.entries li{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--line)}
+.entries li:last-child{border-bottom:0}
+.idx{color:var(--muted);min-width:2.6em;text-align:right;font-variant-numeric:tabular-nums}
+.ename{flex:1;min-width:0;overflow-wrap:anywhere}
+.badge{background:var(--chip);border-radius:6px;padding:0 8px;font-size:.85rem;white-space:nowrap}
+.badge.cust{background:var(--accent);color:var(--accent-ink)}
+[hidden]{display:none !important}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field label{font-weight:700;font-size:.95rem}
+.field input,.field select{width:100%}
+.md{font-family:"Alegreya",Georgia,serif;font-size:1.12rem;line-height:1.55}
+.md h1{font-size:1.9rem;margin:0 0 .4em} .md h2{font-size:1.4rem;margin:1.2em 0 .4em} .md h3{font-size:1.15rem;margin:1em 0 .3em}
+.md p{margin:0 0 .8em} .md hr{border:0;border-top:1px solid var(--line);margin:1.2em 0}
+.md ul{margin:0 0 .8em;padding-left:1.4em}
+.md table{border-collapse:collapse;margin:0 0 .8em;display:block;overflow-x:auto}
+.md th,.md td{border:1px solid var(--line);padding:4px 10px;text-align:left}
+.err-box{color:var(--err);font-weight:500;white-space:pre-wrap}
+.help{color:var(--muted);font-size:.95rem;margin:0 0 12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Random Magic Item Crafter</h1>
+  <p class="sub">Roll the full skeleton, resolve every cascade, and copy a ready-made prompt for any capable AI. Add your own entries to any table, or remove the defaults you don't want.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabRoll" aria-selected="true">Roll</button>
+    <button class="tab" role="tab" id="tabTables" aria-selected="false">Customize tables</button>
+    <button class="tab" role="tab" id="tabAI" aria-selected="false">AI connection</button>
+  </div>
+
+  <!-- ROLL TAB -->
+  <section id="paneRoll">
+    <div class="bar">
+      <button class="primary" id="roll">Roll an item</button>
+      <label class="note" for="forceType">Item type:</label>
+      <select id="forceType"></select>
+    </div>
+    <div class="card">
+      <h2>Item options</h2>
+      <div class="field">
+        <label for="notes">Setting notes / constraints (optional)</label>
+        <textarea id="notes" style="min-height:70px" placeholder="Campaign setting, creatures to use, tone, anything the item must respect"></textarea>
+      </div>
+      <div class="row">
+        <label class="note">Rarity
+          <select id="rarity"><option value="">AI decides</option><option>Common</option><option>Uncommon</option><option>Rare</option><option>Very Rare</option><option>Legendary</option></select></label>
+        <label class="note">Output
+          <select id="detail"><option value="full">Lore + full playable stat block</option><option value="basic">Lore + basic statistics only</option></select></label>
+      </div>
+    </div>
+    <div id="out"><div class="empty">Press “Roll an item” to begin.</div></div>
+  </section>
+
+  <!-- TABLES TAB -->
+  <section id="paneTables" hidden>
+    <div class="card">
+      <h2>Add an entry</h2>
+      <div class="row">
+        <label class="note" for="tblSel">Table:</label>
+        <select id="tblSel" class="grow"></select>
+      </div>
+      <div class="row">
+        <input type="text" id="newName" class="grow" maxlength="80" placeholder="e.g. Katana" autocomplete="off">
+        <button class="primary" id="addBtn" style="font-size:1rem;padding:10px 20px">Add</button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="override"> Allow duplicates (adds even if it already exists, raising its odds)</label>
+        <label id="copiesWrap" hidden>Copies: <input type="number" id="copies" min="1" max="50" value="1"></label>
+      </div>
+      <p class="msg" id="msg" role="status"></p>
+    </div>
+
+    <div class="card">
+      <h2 id="viewTitle">Table</h2>
+      <p class="note" id="viewInfo"></p>
+      <div class="row">
+        <button class="small" id="resetTbl">Reset this table</button>
+        <span class="note" id="weaponNote"></span>
+      </div>
+      <ul class="entries" id="entries"></ul>
+      <div id="removedWrap" hidden>
+        <h3 style="margin:18px 0 0;font-size:1.05rem">Removed defaults</h3>
+        <p class="note" style="margin:2px 0 0">Not rolled. Restore one here, or re-add its exact name above.</p>
+        <ul class="entries" id="removedList" style="max-height:200px"></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Save / share your changes</h2>
+      <p class="note">Your additions and removals are saved in this browser automatically. To move them to another device or back them up, copy the text below, or paste saved text and press Import.</p>
+      <textarea id="io" spellcheck="false" placeholder="Export fills this box. Paste exported text here to import."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="exportBtn">Export</button>
+        <button id="importBtn">Import</button>
+        <button id="resetAll">Reset all tables</button>
+      </div>
+      <p class="msg" id="ioMsg" role="status"></p>
+    </div>
+  </section>
+
+  <!-- AI TAB -->
+  <section id="paneAI" hidden>
+    <div class="card">
+      <h2>AI connection</h2>
+      <p class="help">Pick where the item gets written. Everything is sent straight from this page to the service you choose. Nothing goes through any other server.</p>
+      <div class="field"><label for="provider">Provider</label>
+        <select id="provider">
+          <option value="anthropic">Anthropic (Claude) — cloud</option>
+          <option value="openai">OpenAI (ChatGPT) — cloud</option>
+          <option value="ollama">Ollama — runs on your computer</option>
+          <option value="compat">Other OpenAI-compatible (LM Studio, OpenRouter, …)</option>
+        </select></div>
+      <div class="field" id="fBase"><label for="baseUrl">Server address</label><input type="text" id="baseUrl" autocomplete="off" spellcheck="false"></div>
+      <div class="field" id="fKey"><label for="apiKey">API key</label><input type="password" id="apiKey" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="model">Model</label>
+        <input type="text" id="model" list="modelList" autocomplete="off" spellcheck="false">
+        <datalist id="modelList"></datalist></div>
+      <div class="field" id="fCtx"><label for="numCtx">Context window (Ollama only)</label><input type="number" id="numCtx" min="2048" max="131072" step="1024"></div>
+      <p class="help" id="provHelp"></p>
+      <div class="row">
+        <button id="listModels">List models / test connection</button>
+        <label><input type="checkbox" id="remember"> Remember my key in this browser</label>
+      </div>
+      <p class="help">If “Remember” is off, your key is forgotten when you close or reload the page. If it's on, the key is stored unencrypted in this browser, so only use that on a computer you trust.</p>
+      <p class="msg" id="aiMsg" role="status"></p>
+    </div>
+  </section>
+</main>
+
+<script type="text/plain" id="aiInstr">
+MAGIC ITEM CRAFTER: AI USE INSTRUCTIONS
+
+You have been given a Random Magic Item Crafter document. Treat that document as the authoritative rules and tables for generating the skeleton of a magic item.
+
+Your job is NOT merely to repeat the rolled results. Your job is to turn those results into one cohesive D&D magic item with an understandable purpose, history, appearance, mechanics, and origin.
+
+User-provided information always overrides the crafter document or your assumptions. If the user supplies rolls, interpretations, setting information, corrections, names, creature choices, or other details, use those exactly unless asked to change them.
+
+Do not silently reroll or replace an inconvenient result. Strange combinations are intentional. Find a way to make them work together.
+
+If the user asks you to roll randomly, actually use the tables in the supplied crafter document.
+
+If the user supplies the rolls themselves, do not reroll them.
+
+If the user explicitly asks you to fake, fudge, choose, or force rolls for a particular concept, you may choose results that create that concept and then show those chosen results in the Rolls section.
+
+ROLL HANDLING
+
+Follow every triggered subtable in the crafter document.
+
+Primary Function result 11, "Roll Twice," produces two additional Primary Function rolls. Resolve both completely.
+
+Primary Function result 12, "+1 and Roll Again," gives the item a +1 magical bonus and produces another Primary Function roll. If that new roll is another 11 or 12, continue resolving it. These results can cascade recursively.
+
+Multiple 12 results stack. For example, two separate +1 results produce a +2 item unless the nature of the item requires a different sensible interpretation.
+
+Mechanics are rolled as separate d12 results, not as a summed 2d12 total.
+
+Mechanics result 12, "Roll Twice," produces two additional Mechanics rolls. Those rolls can also produce more 12s. Continue until every result has been resolved.
+
+Do not discard duplicate results automatically. Duplicate results should normally strengthen, narrow, specialize, or otherwise meaningfully modify the item.
+
+For example, two "Usable by Spellcaster Only" results might narrow the restriction from any spellcaster to a particular spellcasting class. Two creature-specific results might become both offensive and defensive abilities against the same enemy. Two damage results of the same type might increase that damage or create two related applications of it.
+
+Results such as "Gain Senses," "Increase Stats," "Movement Speed / Type," "Summons Something," "Extra Damage or Protection from Certain Creatures," and similar broad results require you to choose a specific implementation that makes sense for the finished item.
+
+COHESION
+
+Treat the rolls as the skeleton of the item, not as unrelated abilities.
+
+Determine why the item was originally created. Use the Originator to determine who made it, influenced it, discovered it, or was responsible for its creation.
+
+Then make the Primary Functions serve that purpose.
+
+The Mechanics should explain how the item is operated, limited, improved, or paid for.
+
+The Random Trait should be part of the actual item's construction, appearance, history, magical behavior, or identity. Do not bolt it on as an unrelated joke.
+
+Whenever possible, make several different rolls come from the same underlying idea.
+
+For example, if an underground species creates a weapon with Tremorsense, Thunder damage, and bonuses against a particular enemy, those abilities might all come from a material that carries vibrations through stone and flesh.
+
+The finished item should feel as though someone intentionally made it, even when the original random results are bizarre.
+
+SETTING LORE
+
+If setting information is supplied, respect it.
+
+Do not replace established setting lore with generic D&D lore.
+
+Do not invent major wars, nations, gods, civilizations, planar rules, historical events, cultural traditions, or other large setting facts merely to explain the item.
+
+It is acceptable to invent small-scale item-specific material such as an individual smith, owner, expedition, battle, laboratory, cult, workshop, local incident, or lost cache when needed.
+
+If explaining the item properly would require an important piece of setting lore that has not been provided, ask the user rather than inventing it.
+
+If no custom setting information is supplied, ordinary D&D assumptions may be used.
+
+A rolled Originator does not have to produce stereotypical craftsmanship. Consider what that particular creator wanted and why.
+
+If the user deliberately reinterprets a roll, follow their interpretation and record it accurately in the Rolls section.
+
+ITEM NAME
+
+Create a name only after understanding the item's purpose and history.
+
+Avoid generic fantasy names unless they genuinely fit.
+
+Do not make every item name poetic.
+
+A practical creator may give an artifact a practical name. A ceremonial culture may use a formal title. A crude or angry creator may name a weapon after exactly what it does.
+
+If the user rejects the name, replace it without defending the original.
+
+LORE
+
+The Lore section is in-world lore.
+
+Write it as cohesive paragraphs.
+
+Do not write one sentence per paragraph.
+
+Do not turn every concept into its own heading.
+
+Do not write the lore like a game manual or stat block.
+
+Do not say things such as:
+"The weapon is +2."
+"It deals 2d6 thunder damage."
+"It grants 30 feet of truesight."
+"The wielder has advantage on Wisdom saving throws."
+
+Those belong in the mechanical sections.
+
+Instead describe what those mechanics mean in the world.
+
+For example:
+"The blow carries a violent resonance through bone and armor."
+"The bearer can feel movement travelling through connected stone."
+"Illusions become visibly unstable at close range."
+"The weapon resists attempts by its creators' former masters to enter the wielder's mind."
+
+Explain the item's construction, appearance, intended purpose, creator, development, important owners or events when appropriate, and why its powers exist.
+
+The importance of the lore should scale with the importance of the item.
+
+A minor uncommon item might need only a few paragraphs.
+
+A Rare or Very Rare item should normally receive a substantial history if the rolls support one.
+
+A Legendary or otherwise exceptional artifact deserves a major lore entry. Give its materials, creation, historical development, unusual powers, consequences, and identity enough room to feel genuinely important.
+
+Do not assume Legendary automatically means ancient, world-famous, divine, or responsible for enormous historical events. A legendary item may be extremely powerful while having a localized history.
+
+SENTIENT ITEMS
+
+If Exceptional produces Sentient, make the sentience part of the item's history and function.
+
+Determine its personality, intelligence, communication method, desires, fears, disposition, relationship with its creator, and relationship with its bearer.
+
+Sentience does not mean friendly.
+
+Do not make an item sentient unless the roll, user, or established concept calls for it.
+
+LEGENDARY ITEMS
+
+If Exceptional produces Legendary, strengthen and expand the abilities already generated rather than adding a pile of unrelated abilities.
+
+Legendary power should grow out of the existing concept.
+
+If the item also has Awakens / Exalts, create meaningful stages of development.
+
+The Unawakened form should already be a complete useful magic item.
+
+The Awakened form should deepen its existing purpose.
+
+The Exalted form should represent the fullest realization of why the item was created.
+
+Do not make Awakening and Exalting arbitrary numerical upgrades only. Their new powers should reflect the item's story.
+
+GAME MECHANICS
+
+After the lore, translate the concept into usable D&D mechanics.
+
+Do not put those mechanics inside the Lore section.
+
+Choose sensible numbers based on rarity, item type, existing D&D conventions, the number of beneficial rolls, drawbacks, restrictions, and how specialized the abilities are.
+
+Do not make every rolled benefit equally powerful. A highly specialized ability can be stronger than a universally useful ability.
+
+Costs, curses, restrictions, limited charges, narrow targets, difficult activation conditions, and Double Edged results can justify stronger effects.
+
+If a result says the item costs something, use one of the cost categories allowed by the crafter unless the user specifies otherwise. Do not casually replace an HP, GP, Exhaustion, or Morality cost with an unrelated resource.
+
+If the item replicates a spell, respect the rolled spell level.
+
+If an ability is thematic only, do not automatically turn it into additional damage or another major mechanical benefit.
+
+WEAPON STATISTICS
+
+If the generated item is a weapon, include a separate Weapon Statistics section after the lore.
+
+Start from the statistics of the underlying mundane D&D weapon.
+
+Show at minimum:
+
+Weapon type
+Base damage
+Damage type
+Weapon properties
+Magic bonus, if any
+Additional rolled damage
+Special enemy damage, if any
+Weight when reasonably known
+Attunement requirement
+Spellcasting focus status if applicable
+Rarity
+
+Also show the normal attack damage formula when useful.
+
+Example:
+
+Quarterstaff
+Damage: 1d6 bludgeoning
+Versatile: 1d8 bludgeoning
+Magic Bonus: +2
+Additional Damage: +2d6 thunder
+Against Illithids: +2d8 thunder
+Properties: Versatile
+Attunement: Warlock only
+Rarity: Legendary
+
+One-handed hit:
+1d6 + Strength modifier + 2 bludgeoning + 2d6 thunder
+
+Two-handed hit:
+1d8 + Strength modifier + 2 bludgeoning + 2d6 thunder
+
+Do not change the mundane weapon's base damage merely because the magic item is powerful. Magical power is normally layered on top of the weapon chassis unless a rolled result specifically justifies altering it.
+
+For armor, shields, focuses, rings, wondrous items, potions, and scrolls, create an equivalent Statistics section containing the mechanical information appropriate to that item type.
+
+FULL MAGIC ITEM RULES
+
+If the user asks for a complete playable stat block, add the magical properties after the basic Weapon Statistics or Item Statistics.
+
+Translate every meaningful rolled result into a usable rule.
+
+Use normal D&D language for actions, bonus actions, reactions, saving throws, charges, recharge timing, damage, conditions, ranges, durations, attunement, and other mechanics.
+
+Do not create unnecessary rules for purely cosmetic traits.
+
+If the item Awakens / Exalts, clearly separate the abilities available at each stage.
+
+If the user asks only for the basic weapon stats, do not dump the entire magic-item rules block again.
+
+ROLLS SECTION
+
+The Rolls section always comes last.
+
+Place a horizontal break before it.
+
+Record the actual generation path, including cascades, triggered subtables, duplicate results, and the interpretation chosen for broad results.
+
+Do not rewrite the entire lore here.
+
+Example structure:
+
+---
+## Rolls
+
+Type: Weapon
+Weapon: Staff
+
+Primary Function: 11, Roll Twice
+- 6: Damage
+  - Thunder
+- 11: Roll Twice
+  - 9: Extra Damage / Protection against Certain Creatures
+  - 12: +1 and Roll Again
+    - +1
+    - ...
+
+Originator: 11
+- Aberration
+- User interpretation: Derro weapon with an aberrant origin caused by Mind Flayer enslavement
+
+Mechanics:
+- 8: Spellcaster Only
+- 12: Roll Twice
+  - ...
+- Duplicate Spellcaster Only results interpreted as Warlock only
+
+Random Trait: 10
+- Exceptional
+- Legendary
+
+If rolls were supplied by the user, reproduce them faithfully.
+
+If the AI generated the rolls, show what was actually rolled.
+
+If rolls were deliberately fudged at the user's request, it is fine to show the selected rolls normally. Do not falsely insist they were random.
+
+DEFAULT FINAL FORMAT
+
+Use this order unless the user asks for something different:
+
+# Item Name
+
+## Lore
+
+Several cohesive paragraphs of in-world lore.
+
+---
+
+## Weapon Statistics
+or
+## Item Statistics
+
+Actual mechanical chassis and essential numerical statistics.
+
+If requested, follow this with the complete magical rules.
+
+---
+
+## Rolls
+
+Compact record of the generation results and how broad or duplicate results were interpreted.
+
+STYLE
+
+Write normal cohesive paragraphs.
+
+Avoid choppy one-sentence paragraphs.
+
+Do not use an excessive number of headings.
+
+Do not use game terminology inside the in-world lore unless people in the setting would actually use that terminology.
+
+Separate descriptive lore from game mechanics.
+
+Do not force symbolism onto ordinary visual details unless the rolls or setting justify it.
+
+Do not overexplain obvious connections.
+
+When the user gives a correction, incorporate it immediately instead of defending the previous interpretation.
+
+The objective is not to prove that the random tables worked.
+
+The objective is to make the final item feel as though it always existed first and the random tables merely discovered it.
+</script>
+<script type="text/plain" id="aiRef">
+RANDOM MAGIC ITEM CRAFTER: RULES REFERENCE
+
+Generation flow: Magic Item Type, Item Subtype if required, Primary Function, any triggered subtable, Originator, any triggered subtable, Mechanics, Random Trait.
+
+The user's rolls have already been made with these tables. The user may have added custom entries to a table or removed default entries; treat every rolled result as given, even if it is not in the standard lists below.
+
+Item types: Potion / Scroll, Wondrous Item, Focus (Wand, Staff, Rod, Orb), Armor (Light, Medium, Heavy, or non-armor pieces: Shield, Helmet, Etc. such as gauntlets and greaves), Weapon, Ring.
+
+Primary Function results: Summons Something; Allows Different Ability Scores to Be Used; Access Different / New Locations; Provides Abilities in Certain Weather / Conditions / Terrain; Imposes Negative Status on Target; Deals Some Type of Damage (roll a damage type); Casts / Replicates a Spell (a spell level is rolled, respect it); Gain a Racial Trait; Extra Damage to or Protection from Certain Creatures; Gives You a Boon / Extra Ability; Roll Twice; +1 and Roll Again.
+
+Boon / Extra Ability results: Increase Stats (choose the ability score that makes sense for the item); Movement Speed / Type; Increase Crit Range / Extra Crit Damage; Temp HP; Gain Senses; Damage Resistance (a damage type is rolled).
+
+Damage types: Acid, Cold, Fire, Force, Lightning, Necrotic, Poison, Psychic, Radiant, Thunder.
+
+Originators: Celestial; Fiendish / Demonic (Fiend or Demon); Primordial / Elemental (Air, Earth, Water, or Fire); Fae (Feywild / Auriglade or Shadowfell / Shadenoct); Common Species; Rare Species; Unplayable / Other Intelligent Species; Aberration; Unknown / Ancient Origin.
+
+Mechanics results: Costs wielder something (HP, GP, Exhaustion, or Morality); Double Edged in Some Way; Has Charges; Awakens / Exalts; Command Word; Buttons to Activate; Requires Attunement; Usable by Spellcaster Only; Usable only by specific Species; Different features in different varieties / sizes; None; Roll Twice. Two separate Mechanics rolls are made, not a summed total.
+
+Random Trait:
+- Cursed: the item gains a meaningful drawback connected to its existing function, originator, or mechanics (examples: using it costs HP or causes exhaustion, it cannot be willingly discarded, its power sometimes affects the wielder, it attracts hostile creatures, it demands a recurring action, its benefit comes with an equivalent penalty, summoned creatures turn hostile afterward, it requires increasingly costly sacrifices, it twists its function in certain circumstances, removing it requires Remove Curse, it gradually alters its wielder). Design it as a real curse rather than a generic one.
+- Anatomical Oddity: these features do not automatically make the item sentient.
+- Strange Property, Material / Surface, Form / Decoration, Physical Transformation: appearance and incidental behavior.
+- Elemental / Environmental Theme and Supernatural Theme: primarily a theme, not automatically a mechanical damage type or power, unless the other rolls support a matching power.
+- Creature / Nature Theme: a theme drawn from a creature or natural form.
+- Exceptional: the item becomes Legendary (existing abilities strengthened, expanded, or made more significant) or Sentient (determine intelligence level, personality, disposition, communication method, wants, fears, and relationship to its creator or originator; sentience does not automatically mean helpful). In this app, Legendary or Sentient was chosen by a coin flip.
+</script>
+<script>
+const d = n => 1 + Math.floor(Math.random() * n);
+const node = (t, c = []) => ({ t, c });
+
+/* ================= DEFAULT TABLES ================= */
+const DEF = {};
+function def(id, label, group, names, keys = {}){
+  DEF[id] = { id, label, group, entries: names.map((n, i) => ({ name: n, key: keys[i+1] || null })) };
+}
+const G_TYPE = "Item type & subtypes", G_PRIM = "Primary function", G_DMG = "Damage & boons",
+      G_ORIG = "Originator", G_SPEC = "Species", G_MECH = "Mechanics", G_TRAIT = "Random trait";
+
+def("type", "Magic Item Type", G_TYPE, ["Potion / Scroll","Wondrous Item","Focus","Armor","Weapon","Ring"], {2:"wondrous",3:"focus",4:"armor",5:"weapon"});
+def("focus", "Focus subtypes", G_TYPE, ["Wand","Staff","Rod","Orb"]);
+def("armor", "Armor subtypes", G_TYPE, ["Light","Medium","Heavy","Shield (not armor)","Helmet (not armor)","Etc. — gauntlets, greaves, similar (not armor)"]);
+def("weapon", "Weapons", G_TYPE, ["Club","Whip","Mace","Bow","Staff","Axe","Sword","Hammer","Dagger","Polearm","Spear","Trident","Sickle / Scythe"]);
+def("wondrous", "Wondrous Items", G_TYPE, ["Amulet / Necklace","Bag","Barrel","Bead / Marble","Bedroll","Bell","Boat","Bowl","Book","Boots","Bottle / Cup / Jug","Box","Brazier","Brooch","Broom","Candle","Cape","Cards","Carpet / Rug","Chest","Circlet","Cloak / Coat","Crown","Dice","Dust","Eyepatch","Figurine / Statue","Flask","Gemstone","Glasses / Monocle","Gloves","Hat","Headband","Horseshoes","Instrument","Lantern","Manacles","Mirror","Needle","Pot","Quiver","Rope","Saddle","Scarf","Socks","Spyglass","String / Thread","Tent","Thimble","Waterskin","Apron","Banner / Flag","Basket","Belt","Blanket","Bracelet / Bangle","Brush / Comb","Bucket","Chalk","Compass","Doll / Puppet","Fan","Hourglass","Inkpot","Key","Kite","Lock","Magnifying Glass","Mask","Medal / Badge","Mortar and Pestle","Pillow","Pipe","Scale / Balance","Seal / Stamp","Shovel / Spade","Soap","Sundial","Teapot / Kettle","Tongs","Towel","Umbrella / Parasol","Whistle","Whetstone","Writing Quill","Abacus","Anchor","Bellows","Cage","Clock","Door Knocker","Handkerchief","Ladder","Loom","Map","Mousetrap","Platter / Tray","Pulley","Signpost","Wheel"]);
+def("primary", "Primary Function", G_PRIM, ["Summons Something","Allows Different Ability Scores to Be Used","Access Different / New Locations","Provides Abilities in Certain Weather / Conditions / Terrain","Imposes Negative Status on Target","Deals Some Type of Damage","Casts / Replicates a Spell","Gain a Racial Trait","Extra Damage to or Protection from Certain Creatures","Gives You a Boon / Extra Ability","Roll Twice","+1 and Roll Again"], {6:"damage",7:"spell",10:"boon",11:"roll2",12:"plus1"});
+def("damage", "Damage types", G_DMG, ["Acid","Cold","Fire","Force","Lightning","Necrotic","Poison","Psychic","Radiant","Thunder"]);
+def("boon", "Boon / Extra Ability", G_DMG, ["Increase Stats","Movement Speed / Type","Increase Crit Range / Extra Crit Damage","Temp HP","Gain Senses","Damage Resistance"], {6:"damage"});
+def("orig", "Originator", G_ORIG, ["Celestial","Fiendish / Demonic","Primordial / Elemental","Fae","Common Species","Common Species","Common Species","Rare Species","Rare Species","Unplayable / Other Intelligent Species","Aberration","Unknown / Ancient Origin"], {2:"fiend",3:"elem",4:"fae",5:"common",6:"common",7:"common",8:"rare",9:"rare"});
+def("fiend", "Fiendish / Demonic split", G_ORIG, ["Fiend","Demon"]);
+def("elem", "Primordial / Elemental split", G_ORIG, ["Air","Earth","Water","Fire"]);
+def("fae", "Fae split", G_ORIG, ["Feywild / Auriglade","Shadowfell / Shadenoct"]);
+def("common", "Common Species", G_SPEC, ["Dragonborn","Dwarf","Elf","Faun","Firbolg","Giantkin","Human","Human","Half-Elf","Half-Orc","Halfling","Orc"]);
+const RARE = [
+ ["Aasimar","Awakened Animal","Centaur","Cervan","Changeling","Corvum","Dhampir","Duergar","Eladrin","Fairy","Fey"],
+ ["Gallus","Genasi","Giff","Grung","Hadozee","Harengon","Hedge","Hexblooded","Hobgoblin","Jerbeen","Kame"],
+ ["Kenku","Khenra","Leonin","Lizardfolk","Locathah","Loxodon","Luma","Mapach","Minotaur","Owlin","Plasmoid"],
+ ["Raptor","Reborn","Revenant","Ribbitfolk","Sea Elf","Tabaxi","Tiefling","Triton","Veilmerge","Vulpin","Warforged"]
+];
+RARE.forEach((g, i) => def("rare" + (i+1), "Rare Species — Group " + (i+1), G_SPEC, [...g, "Choose / Reroll"], {12:"reroll"}));
+def("mech", "Mechanics", G_MECH, ["Costs wielder something","Double Edged in Some Way","Has Charges","Awakens / Exalts","Command Word","Buttons to Activate","Requires Attunement","Usable by Spellcaster Only","Usable only by specific Species","Different features in different varieties / sizes","None","Roll Twice"], {1:"cost",12:"roll2"});
+def("cost", "Mechanics cost types", G_MECH, ["HP","GP","Exhaustion","Morality"]);
+def("trait", "Random Trait", G_TRAIT, ["Cursed","Anatomical Oddity","Strange Property","Material / Surface","Form / Decoration","Physical Transformation","Elemental / Environmental Theme","Supernatural Theme","Creature / Nature Theme","Exceptional"], {2:"tr2",3:"tr3",4:"tr4",5:"tr5",6:"tr6",7:"tr7",8:"tr8",9:"tr9",10:"exceptional"});
+def("tr2", "Trait: Anatomical Oddity", G_TRAIT, ["Has a mouth","Has one large eye","Has many small eyes","Has teeth or fangs","Has a tongue","Has ears","Has hair","Has fur","Has visible veins","Has a heartbeat","Breathes","Blinks","Has fingers or tiny hands","Has claws or talons","Has roots","Has tendrils","Bleeds when damaged","Has a recognizable face","Has one or more vestigial limbs","Has a strange internal organ visible through part of its surface"]);
+def("tr3", "Trait: Strange Property", G_TRAIT, ["Shrinks to pocket size when not in use","Sheds light","Reacts to the presence of a certain species","Looks like a completely different mundane object","Changes appearance depending on the wielder","Changes appearance depending on the weather","Changes appearance at a particular time of day","Floats when released","Slowly rotates or turns on its own","Returns to its owner when called","Produces a faint constant sound","Whispers incomprehensibly","Is always unusually warm","Is always unusually cold","Never becomes dirty","Cannot remain wet","Leaves a temporary trail behind it","Casts an unusual shadow","Has no reflection","Occasionally moves a short distance when nobody is watching"]);
+def("tr4", "Trait: Material / Surface", G_TRAIT, ["Metallic","Gem-encrusted","Camouflage coloration","Spiked","Translucent","Transparent","Mirrored","Iridescent","Pearlescent","Cracked but apparently undamaged","Covered in runes or symbols","Stone-like","Bark-like","Ivory or bone-like","Glass-like","Porcelain-like","Leather-like","Covered in fine scales","Covered in a strange lacquer or glossy coating","Made from an unusual material appropriate to its originator"]);
+def("tr5", "Trait: Form / Decoration", G_TRAIT, ["Fancy / Regal","Heavily ornamented","Extremely plain","Ceremonial in appearance","Primitive or crude-looking","Covered in intricate filigree","Patchwork construction","Asymmetrical","Perfectly symmetrical","Impossibly thin or delicate-looking","Unusually bulky","Oversized decorative features","Covered in repeating geometric patterns","Covered in engraved scenes","Covered in writing or inscriptions","Built from interlocking sections","Completely seamless","Decorated with chains, tassels, ribbons, or hanging pieces","Styled after an ancient or obsolete version of the object","Appears unfinished despite functioning normally"]);
+def("tr6", "Trait: Physical Transformation", G_TRAIT, ["Scaled","Feathered","Fur-covered","Thorny","Crystalline","Bone-like","Chitinous","Partially organic or fleshy","Appears molten","Appears frozen","Appears partially burned or charred","Appears overgrown with moss","Appears rusted or corroded without being weakened","Constantly drips water","Constantly sheds harmless ash","Constantly sheds dust, sand, or pollen","Slowly grows and retracts small protrusions","Parts of it shift or rearrange themselves","Changes size slightly while being used","Changes shape enough to look handmade differently each time it is examined"]);
+def("tr7", "Trait: Elemental / Environmental Theme", G_TRAIT, ["Fire","Water","Air / Wind","Earth / Stone","Ice / Snow","Lightning","Storm","Ocean","River","Desert","Forest","Swamp","Mountain","Cave / Underground","Volcanic","Arctic","Jungle","Night / Moon","Dawn / Sun","Rain / Mist"]);
+def("tr8", "Trait: Supernatural Theme", G_TRAIT, ["Spectral / Ghost","Shadow","Radiant / Holy","Necrotic / Death","Arcane","Fey","Fiendish","Celestial","Dream","Nightmare","Blood","Void","Cosmic / Stellar","Time","Fate","Memory","Illusion","Psychic","Soul","Otherworldly / Planar"]);
+def("tr9", "Trait: Creature / Nature Theme", G_TRAIT, ["Dragon","Insect","Mammal","Bird / Feather","Floral / Plant / Vine","Reptile","Serpent","Aquatic creature","Arachnid","Fungal","Amphibian","Feline","Canine","Rodent","Hoofed animal","Fish","Crustacean","Mollusk","Worm / Burrowing creature","Specific beast of the creator's choice"]);
+
+/* ================= CUSTOM + REMOVED ENTRIES (persisted) ================= */
+const STORE_KEY = "magic-item-crafter-custom-v1";
+let CUSTOM = {};    // id -> [{name,key}]  added entries
+let REMOVED = {};   // id -> [{i,name}]    default entries taken out (i = index in DEF)
+
+function sanitizeCustom(obj){
+  const out = {};
+  if (!obj || typeof obj !== "object") return out;
+  for (const id of Object.keys(obj)){
+    if (!DEF[id] || !Array.isArray(obj[id])) continue;
+    const validKeys = new Set(DEF[id].entries.map(e => e.key).filter(Boolean));
+    const list = [];
+    for (const e of obj[id]){
+      if (!e || typeof e.name !== "string") continue;
+      const name = e.name.trim().slice(0, 80);
+      if (!name) continue;
+      list.push({ name, key: (typeof e.key === "string" && validKeys.has(e.key)) ? e.key : null });
+    }
+    if (list.length) out[id] = list;
+  }
+  return out;
+}
+function sanitizeRemoved(obj){
+  const out = {};
+  if (!obj || typeof obj !== "object") return out;
+  for (const id of Object.keys(obj)){
+    if (!DEF[id] || !Array.isArray(obj[id])) continue;
+    const seen = new Set(), list = [];
+    for (const r of obj[id]){
+      if (!r || !Number.isInteger(r.i) || seen.has(r.i)) continue;
+      const base = DEF[id].entries[r.i];
+      if (!base || base.name !== r.name) continue;      // only trust removals that still match
+      seen.add(r.i); list.push({ i: r.i, name: base.name });
+    }
+    if (list.length) out[id] = list;
+  }
+  return out;
+}
+function parseData(obj){
+  // new format {v:2, custom, removed}; old format was just the custom object
+  const data = (obj && obj.v === 2)
+    ? { custom: sanitizeCustom(obj.custom), removed: sanitizeRemoved(obj.removed) }
+    : { custom: sanitizeCustom(obj), removed: {} };
+  for (const id of Object.keys(data.removed)){        // never leave a table empty
+    const left = DEF[id].entries.length - data.removed[id].length + (data.custom[id] ? data.custom[id].length : 0);
+    if (left < 1) delete data.removed[id];
+  }
+  return data;
+}
+function applyData(data){ CUSTOM = data.custom; REMOVED = data.removed; }
+function loadCustom(){
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) applyData(parseData(JSON.parse(raw)));
+  } catch (e) { CUSTOM = {}; REMOVED = {}; }
+}
+function saveCustom(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ v: 2, custom: CUSTOM, removed: REMOVED })); } catch (e) {}
+}
+const isRemoved = (id, i) => (REMOVED[id] || []).some(r => r.i === i);
+function activeDefaults(id){
+  return DEF[id].entries.map((e, i) => ({ e, i })).filter(x => !isRemoved(id, x.i));
+}
+const getEntries = id => activeDefaults(id).map(x => x.e).concat(CUSTOM[id] || []);
+const isModified = id => !!((CUSTOM[id] && CUSTOM[id].length) || (REMOVED[id] && REMOVED[id].length));
+
+/* ================= ROLL LOGIC ================= */
+function rollTable(id){
+  const E = getEntries(id), n = E.length, r = d(n);
+  return { r, n, e: E[r-1] };
+}
+const lab = x => `${x.r}: ${x.e.name}`;
+function rollKeyed(id, avoid){        // reroll (bounded) while the key is in `avoid`
+  let x = rollTable(id), tries = 0;
+  while (avoid && avoid.includes(x.e.key) && tries++ < 30) x = rollTable(id);
+  return x;
+}
+function rollDamage(){ return node(lab(rollTable("damage"))); }
+
+function rollPrimary(depth, st){
+  const x = depth > 6 ? rollKeyed("primary", ["roll2","plus1"]) : rollTable("primary");
+  const nd = node(lab(x));
+  switch (x.e.key){
+    case "damage": nd.c.push(rollDamage()); break;
+    case "spell": nd.c.push(node(`Spell level ${d(10)}`)); break;
+    case "boon": {
+      const b = rollTable("boon"), bn = node(lab(b));
+      if (b.e.key === "damage") bn.c.push(rollDamage());
+      nd.c.push(bn); break;
+    }
+    case "roll2": nd.c.push(rollPrimary(depth+1, st)); nd.c.push(rollPrimary(depth+1, st)); break;
+    case "plus1": st.bonus++; nd.c.push(node("+1 magical bonus")); nd.c.push(rollPrimary(depth+1, st)); break;
+  }
+  return nd;
+}
+
+function rollMech(depth){
+  const x = depth > 6 ? rollKeyed("mech", ["roll2"]) : rollTable("mech");
+  const nd = node(lab(x));
+  if (x.e.key === "cost") nd.c.push(node("Cost: " + rollTable("cost").e.name));
+  if (x.e.key === "roll2"){ nd.c.push(rollMech(depth+1)); nd.c.push(rollMech(depth+1)); }
+  return nd;
+}
+
+function rollOriginator(){
+  const x = rollTable("orig"), nd = node(lab(x));
+  if (x.e.key === "fiend") nd.c.push(node(lab(rollTable("fiend"))));
+  if (x.e.key === "elem")  nd.c.push(node(lab(rollTable("elem"))));
+  if (x.e.key === "fae")   nd.c.push(node(lab(rollTable("fae"))));
+  if (x.e.key === "common") nd.c.push(node(lab(rollTable("common"))));
+  if (x.e.key === "rare"){
+    const g = d(4); let y = rollTable("rare" + g), rerolled = false, tries = 0;
+    while (y.e.key === "reroll" && tries++ < 30){ y = rollTable("rare" + g); rerolled = true; }
+    nd.c.push(node(`Group ${g}, ${lab(y)}${rerolled ? " (rolled Choose / Reroll — rerolled)" : ""}`));
+  }
+  return nd;
+}
+
+function rollTrait(){
+  const x = rollTable("trait"), nd = node(lab(x));
+  if (x.e.key && x.e.key.startsWith("tr") && DEF[x.e.key]) nd.c.push(node(lab(rollTable(x.e.key))));
+  if (x.e.key === "exceptional") nd.c.push(node(d(2) === 1 ? "Legendary (coin flip — table says choose)" : "Sentient (coin flip — table says choose)"));
+  return nd;
+}
+
+function rollWeapon(){
+  if (!isModified("weapon")){        // original bell-curve d6 + d8
+    const a = d(6), b = d(8), s = a + b, e = DEF.weapon.entries[s - 2];
+    return { text: `d6 ${a} + d8 ${b} = ${s}: ${e.name}`, name: e.name };
+  }
+  const x = rollTable("weapon");
+  return { text: lab(x), name: x.e.name };
+}
+
+function rollItem(forceName){
+  const st = { bonus: 0 };
+  let x;
+  if (forceName){
+    const E = getEntries("type"), idxs = E.map((e, i) => e.name === forceName ? i : -1).filter(i => i >= 0);
+    const i = idxs[d(idxs.length) - 1];
+    x = { r: i + 1, n: E.length, e: E[i] };
+  } else x = rollTable("type");
+  const typeNode = node(lab(x));
+  let subtype = "";
+  switch (x.e.key){
+    case "focus": case "armor": case "wondrous": {
+      const s = rollTable(x.e.key); typeNode.c.push(node(lab(s))); subtype = s.e.name; break;
+    }
+    case "weapon": { const w = rollWeapon(); typeNode.c.push(node(w.text)); subtype = w.name; break; }
+  }
+  return {
+    type: typeNode, subtype, typeName: x.e.name,
+    primary: rollPrimary(0, st), orig: rollOriginator(),
+    mech: [rollMech(0), rollMech(0)], trait: rollTrait(), bonus: st.bonus
+  };
+}
+
+/* ================= OUTPUT ================= */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const treeHTML = n => `<li>${esc(n.t)}${n.c.length ? `<ul>${n.c.map(treeHTML).join("")}</ul>` : ""}</li>`;
+const treeText = (n, ind = 0) => "  ".repeat(ind) + "- " + n.t + "\n" + n.c.map(c => treeText(c, ind+1)).join("");
+const flat = n => n.t.replace(/^[^:]*:\s*/, "") + (n.c.length ? " — " + n.c.map(c => c.t.replace(/^[^:]*:\s*/, "")).join(", ") : "");
+
+function rollsText(r){
+  return `Type:\n${treeText(r.type)}\nPrimary Function:\n${treeText(r.primary)}\nOriginator:\n${treeText(r.orig)}\nMechanics (two separate d12-style rolls on the Mechanics table):\n${r.mech.map(m => treeText(m)).join("")}\nRandom Trait:\n${treeText(r.trait)}` +
+    (r.bonus ? `\nCumulative magical bonus from "+1 and Roll Again" results: +${r.bonus}\n` : "");
+}
+function settingsLines(){
+  const notes = $("notes").value.trim(), rar = $("rarity").value, full = $("detail").value === "full";
+  return `Setting notes / constraints: ${notes || "none — use ordinary D&D assumptions"}
+Requested rarity: ${rar ? rar + " (unless the rolls themselves call for something different, such as Exceptional: Legendary)" : "your call, based on the rolls"}
+Output: ${full ? "write the lore, the statistics, and the complete playable magical rules" : "write the lore and the basic statistics only"}`;
+}
+function promptText(r){
+  return `Use the attached Random Magic Item Crafter and AI Use Instructions documents. These rolls were already made for me with the crafter tables (some tables may include custom entries I added) — do not reroll them. Resolve every cascade and duplicate as the instructions describe, then write the finished item in the default final format (Lore, Statistics, Rolls).
+
+${rollsText(r)}
+${settingsLines()}`;
+}
+function apiUserMessage(r){
+  return `These rolls were already made with the crafter tables (some tables may include custom entries I added, or have default entries removed) — do not reroll them. Resolve every cascade and duplicate as the instructions describe, then write the finished item in the default final format (Lore, Statistics, Rolls).
+
+${rollsText(r)}
+${settingsLines()}`;
+}
+
+let current = null;
+function render(r){
+  current = r;
+  const sub = r.subtype ? ` (${r.subtype})` : "";
+  document.getElementById("out").innerHTML = `
+  <div class="card skeleton">
+    <span class="tag">${esc(r.typeName)}${esc(sub)}</span><br>
+    <b>Originator:</b> ${esc(flat(r.orig))}<br>
+    <b>Trait:</b> ${esc(flat(r.trait))}
+    ${r.bonus ? `<br><b>Bonus:</b> +${r.bonus}` : ""}
+  </div>
+  <div class="card">
+    <h2>Roll path</h2>
+    <ul class="tree">
+      <li class="sec">Type</li>${treeHTML(r.type)}
+      <li class="sec">Primary Function</li>${treeHTML(r.primary)}
+      <li class="sec">Originator</li>${treeHTML(r.orig)}
+      <li class="sec">Mechanics <span class="note">(two separate rolls)</span></li>${r.mech.map(treeHTML).join("")}
+      <li class="sec">Random Trait</li>${treeHTML(r.trait)}
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Write the item</h2>
+    <p class="note" id="aiStatus"></p>
+    <div class="row">
+      <button class="primary" id="gen">Generate item</button>
+      <button id="stopGen" hidden>Stop</button>
+      <button id="toAI" class="small">AI connection settings</button>
+    </div>
+    <div id="genOut" hidden>
+      <div class="md" id="genMd"></div>
+      <p class="err-box" id="genErr"></p>
+      <div class="row" id="genActions" hidden>
+        <button id="copyMd">Copy text</button>
+        <button id="dlMd">Download .md</button>
+        <button id="regen">Regenerate</button>
+        <span class="note" id="genCopied"></span>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Or copy the prompt</h2>
+    <p class="note">For pasting into any AI chat. Give it both crafter documents (the tables and the AI instructions) first.</p>
+    <textarea id="prompt" readonly style="min-height:200px"></textarea>
+    <p><button id="copy">Copy prompt</button> <span class="note" id="copied"></span></p>
+  </div>`;
+  const ta = $("prompt");
+  ta.value = promptText(r);
+  $("copy").onclick = async () => { await copyText(ta); $("copied").textContent = "Copied."; };
+  $("gen").onclick = generate;
+  $("regen").onclick = generate;
+  $("stopGen").onclick = () => { if (abortCtl) abortCtl.abort(); };
+  $("toAI").onclick = () => showTab("ai");
+  $("copyMd").onclick = async () => {
+    const t = document.createElement("textarea"); t.value = genText; document.body.appendChild(t);
+    await copyText(t); t.remove(); $("genCopied").textContent = "Copied.";
+  };
+  $("dlMd").onclick = () => {
+    const name = (genText.match(/^#\s+(.+)$/m) || [, "magic-item"])[1].replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-") || "magic-item";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([genText], { type: "text/markdown" }));
+    a.download = name + ".md"; document.body.appendChild(a); a.click(); a.remove();
+  };
+  updateStatus();
+}
+async function copyText(ta){
+  try { await navigator.clipboard.writeText(ta.value); }
+  catch (e) { ta.select(); try { document.execCommand("copy"); } catch (_) {} }
+}
+
+/* ================= TABLE EDITOR ================= */
+const $ = id => document.getElementById(id);
+
+function norm(s){
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim()
+          .split(" ").map(w => (w.length > 3 && w.endsWith("s")) ? w.slice(0, -1) : w).join(" ");
+}
+function parts(s){ return s.split("/").map(norm).filter(Boolean); }
+
+function findDuplicate(id, name){
+  const wanted = norm(name), E = getEntries(id);
+  for (let i = 0; i < E.length; i++){
+    if (norm(E[i].name) === wanted || parts(E[i].name).includes(wanted)) return { i, e: E[i] };
+  }
+  return null;
+}
+
+function fillSelects(){
+  // table picker, grouped
+  const sel = $("tblSel"), prev = sel.value || "weapon";
+  const groups = {};
+  Object.values(DEF).forEach(t => (groups[t.group] = groups[t.group] || []).push(t));
+  sel.innerHTML = Object.keys(groups).map(g =>
+    `<optgroup label="${esc(g)}">${groups[g].map(t => `<option value="${t.id}">${esc(t.label)}</option>`).join("")}</optgroup>`).join("");
+  sel.value = prev;
+  fillTypeSelect();
+}
+function fillTypeSelect(){
+  const s = $("forceType"), prev = s.value;
+  const names = [...new Set(getEntries("type").map(e => e.name))];
+  s.innerHTML = `<option value="">Random</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  if (names.includes(prev)) s.value = prev;
+}
+
+function showMsg(el, text, kind){ el.textContent = text; el.className = "msg " + (kind || ""); }
+
+function renderTable(){
+  const id = $("tblSel").value, t = DEF[id];
+  const defs = activeDefaults(id), custom = CUSTOM[id] || [], removed = REMOVED[id] || [];
+  const L = [];
+  defs.forEach(x => L.push({ e: x.e, src: "def", ref: x.i }));
+  custom.forEach((e, j) => L.push({ e, src: "cust", ref: j }));
+  const n = L.length;
+  $("viewTitle").textContent = t.label;
+  const each = (100 / n).toFixed(n > 200 ? 2 : 1);
+  const bits = [`${defs.length} default`];
+  if (removed.length) bits.push(`${removed.length} removed`);
+  if (custom.length) bits.push(`${custom.length} custom`);
+  $("viewInfo").innerHTML = `Rolled as <span class="dieinfo">d${n}</span> — ${n} entries (${bits.join(", ")}), about ${each}% each.`;
+  $("weaponNote").textContent = (id === "weapon")
+    ? (isModified("weapon") ? "Weapons table has been changed: rolls use a flat dN instead of the original d6 + d8 bell curve." : "Unchanged: uses the original d6 + d8 roll (totals 2–14).")
+    : "";
+  const counts = {};
+  L.forEach(x => { const k = norm(x.e.name); counts[k] = (counts[k] || 0) + 1; });
+  const ul = $("entries");
+  ul.innerHTML = L.map((x, i) => {
+    const c = counts[norm(x.e.name)];
+    const dupe = c > 1 ? `<span class="badge">×${c} · ${(100 * c / n).toFixed(1)}%</span>` : "";
+    const cust = x.src === "cust" ? `<span class="badge cust">custom</span>` : "";
+    const dis = n <= 1 ? ` disabled title="A table needs at least one entry"` : "";
+    return `<li><span class="idx">${i + 1}</span><span class="ename">${esc(x.e.name)}</span>${dupe}${cust}<button class="small" data-src="${x.src}" data-ref="${x.ref}"${dis} aria-label="Remove ${esc(x.e.name)}">Remove</button></li>`;
+  }).join("");
+  ul.querySelectorAll("[data-src]").forEach(b => b.onclick = () => {
+    const ref = +b.dataset.ref; let name, key;
+    if (b.dataset.src === "def"){
+      const base = DEF[id].entries[ref]; name = base.name; key = base.key;
+      (REMOVED[id] = REMOVED[id] || []).push({ i: ref, name });
+    } else {
+      const rm = CUSTOM[id].splice(ref, 1)[0]; name = rm.name; key = rm.key;
+      if (!CUSTOM[id].length) delete CUSTOM[id];
+    }
+    saveCustom(); fillTypeSelect(); renderTable();
+    showMsg($("msg"), `Removed "${name}". ${t.label} is now d${getEntries(id).length}.` + (key ? " Its special rules were removed with it." : ""), "ok");
+  });
+
+  $("removedWrap").hidden = !removed.length;
+  $("removedList").innerHTML = removed.slice().sort((a, b) => a.i - b.i).map(r =>
+    `<li><span class="idx">${r.i + 1}</span><span class="ename">${esc(r.name)}</span><button class="small" data-restore="${r.i}" aria-label="Restore ${esc(r.name)}">Restore</button></li>`).join("");
+  $("removedList").querySelectorAll("[data-restore]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.restore;
+    REMOVED[id] = REMOVED[id].filter(r => r.i !== i);
+    if (!REMOVED[id].length) delete REMOVED[id];
+    saveCustom(); fillTypeSelect(); renderTable();
+    showMsg($("msg"), `Restored "${DEF[id].entries[i].name}". ${t.label} is now d${getEntries(id).length}.`, "ok");
+  });
+}
+
+function addEntry(){
+  const id = $("tblSel").value, t = DEF[id], msg = $("msg");
+  const name = $("newName").value.trim().replace(/\s+/g, " ");
+  if (!name){ showMsg(msg, "Type something to add first.", "err"); return; }
+  const override = $("override").checked;
+  let copies = 1;
+  if (override) copies = Math.max(1, Math.min(50, parseInt($("copies").value, 10) || 1));
+
+  const dup = findDuplicate(id, name);
+  if (dup && !override){
+    showMsg(msg, `"${name}" is already in ${t.label} (as "${dup.e.name}", #${dup.i + 1}). Tick "Allow duplicates" to add it anyway.`, "err");
+    return;
+  }
+  // re-adding the exact name of a removed default restores it (with its special rules)
+  const rem = !dup && (REMOVED[id] || []).find(r => norm(r.name) === norm(name));
+  if (rem){
+    REMOVED[id] = REMOVED[id].filter(r => r.i !== rem.i);
+    if (!REMOVED[id].length) delete REMOVED[id];
+    const base = DEF[id].entries[rem.i];
+    const extra = CUSTOM[id] = CUSTOM[id] || [];
+    for (let i = 1; i < copies; i++) extra.push({ name: base.name, key: base.key });
+    if (!extra.length) delete CUSTOM[id];
+    saveCustom(); fillTypeSelect(); renderTable();
+    $("newName").value = ""; $("newName").focus();
+    showMsg(msg, `Restored the default "${base.name}"${copies > 1 ? ` plus ${copies - 1} extra cop${copies > 2 ? "ies" : "y"}` : ""}. ${t.label} is now d${getEntries(id).length}.`, "ok");
+    return;
+  }
+  // an exact duplicate inherits the original's special behavior (e.g. a second "Roll Twice")
+  let key = null;
+  if (dup && norm(dup.e.name) === norm(name)) key = dup.e.key;
+  const list = CUSTOM[id] = CUSTOM[id] || [];
+  for (let i = 0; i < copies; i++) list.push({ name: dup && norm(dup.e.name) === norm(name) ? dup.e.name : name, key });
+  saveCustom(); fillTypeSelect(); renderTable();
+  $("newName").value = "";
+  $("newName").focus();
+  showMsg(msg, `Added "${name}"${copies > 1 ? ` ×${copies}` : ""}${dup ? " (duplicate)" : ""}. ${t.label} is now d${getEntries(id).length}.`, "ok");
+}
+
+/* two-click confirm for destructive buttons */
+function confirmClick(btn, action, label){
+  let armed = false, timer;
+  btn.onclick = () => {
+    if (!armed){
+      armed = true; btn.textContent = "Click again to confirm";
+      timer = setTimeout(() => { armed = false; btn.textContent = label; }, 3000);
+    } else { clearTimeout(timer); armed = false; btn.textContent = label; action(); }
+  };
+}
+
+/* ================= WIRING ================= */
+function showTab(which){
+  $("paneRoll").hidden = which !== "roll";
+  $("paneTables").hidden = which !== "tables";
+  $("paneAI").hidden = which !== "ai";
+  $("tabRoll").setAttribute("aria-selected", which === "roll");
+  $("tabTables").setAttribute("aria-selected", which === "tables");
+  $("tabAI").setAttribute("aria-selected", which === "ai");
+  if (which === "tables") renderTable();
+  if (which === "ai") writeFields();
+}
+
+loadCustom();
+fillSelects();
+$("tabRoll").onclick = () => showTab("roll");
+$("tabTables").onclick = () => showTab("tables");
+$("tabAI").onclick = () => showTab("ai");
+$("roll").onclick = () => render(rollItem($("forceType").value));
+$("tblSel").onchange = () => { showMsg($("msg"), ""); renderTable(); };
+$("addBtn").onclick = addEntry;
+$("newName").addEventListener("keydown", e => { if (e.key === "Enter") addEntry(); });
+$("override").onchange = () => { $("copiesWrap").hidden = !$("override").checked; if (!$("override").checked) $("copies").value = 1; };
+
+confirmClick($("resetTbl"), () => {
+  const id = $("tblSel").value; delete CUSTOM[id]; delete REMOVED[id]; saveCustom(); fillTypeSelect(); renderTable();
+  showMsg($("msg"), `${DEF[id].label} reset to its defaults.`, "ok");
+}, "Reset this table");
+confirmClick($("resetAll"), () => {
+  CUSTOM = {}; REMOVED = {}; saveCustom(); fillTypeSelect(); renderTable();
+  showMsg($("ioMsg"), "All tables reset to defaults.", "ok");
+}, "Reset all tables");
+
+$("exportBtn").onclick = async () => {
+  const ta = $("io");
+  ta.value = JSON.stringify({ v: 2, custom: CUSTOM, removed: REMOVED }, null, 1);
+  await copyText(ta);
+  showMsg($("ioMsg"), (Object.keys(CUSTOM).length || Object.keys(REMOVED).length) ? "Exported and copied." : "No changes yet — the export is empty.", "ok");
+};
+$("importBtn").onclick = () => {
+  try {
+    const data = parseData(JSON.parse($("io").value));
+    applyData(data); saveCustom(); fillTypeSelect(); renderTable();
+    const tables = new Set([...Object.keys(data.custom), ...Object.keys(data.removed)]).size;
+    showMsg($("ioMsg"), `Imported changes for ${tables} table(s).`, "ok");
+  } catch (e) {
+    showMsg($("ioMsg"), "Couldn't read that. Paste exactly what Export produced.", "err");
+  }
+};
+
+/* ================= AI CONNECTION ================= */
+const INSTRUCTIONS = document.getElementById("aiInstr").textContent.trim();
+const REFERENCE = document.getElementById("aiRef").textContent.trim();
+const SYSTEM_PROMPT = INSTRUCTIONS + "\n\n---\n\n" + REFERENCE;
+
+const PROV = {
+  anthropic: { label: "Anthropic (Claude)", base: "https://api.anthropic.com", model: "claude-sonnet-5-5", key: true, showBase: false,
+    help: "Get a key from console.anthropic.com. Model names look like claude-sonnet-5-5; use “List models” to see what your key can use." },
+  openai: { label: "OpenAI (ChatGPT)", base: "https://api.openai.com/v1", model: "gpt-4o", key: true, showBase: true,
+    help: "Get a key from platform.openai.com. If the default model name is rejected, press “List models” and pick a current one." },
+  ollama: { label: "Ollama", base: "http://localhost:11434", model: "", key: false, showBase: true,
+    help: "Ollama must be running. Because this page is a file or a website, Ollama has to allow it: set the environment variable OLLAMA_ORIGINS to * and restart Ollama. Use a model with a good instruction-following ability (about 20B parameters or larger works best), and keep the context window at 16384 or more, because the rules are long." },
+  compat: { label: "OpenAI-compatible", base: "http://localhost:1234/v1", model: "", key: false, showBase: true,
+    help: "Works with LM Studio (start its local server, usually http://localhost:1234/v1), OpenRouter (https://openrouter.ai/api/v1, needs a key), and similar. The server must allow requests from browsers (CORS)." }
+};
+const AI_STORE = "magic-item-crafter-ai-v1";
+let AI = { provider: "anthropic", remember: false, numCtx: 16384, p: {} };
+let genText = "", abortCtl = null;
+
+function provCfg(id){
+  if (!AI.p[id]) AI.p[id] = { base: PROV[id].base, model: PROV[id].model, key: "" };
+  return AI.p[id];
+}
+function loadAI(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(AI_STORE) || "null");
+    if (raw && PROV[raw.provider]){
+      AI.provider = raw.provider; AI.remember = !!raw.remember;
+      AI.numCtx = Number.isFinite(raw.numCtx) ? raw.numCtx : 16384;
+      for (const id of Object.keys(PROV)) if (raw.p && raw.p[id]) AI.p[id] = Object.assign(provCfg(id), raw.p[id]);
+    }
+  } catch (e) {}
+}
+function saveAI(){
+  try {
+    const copy = { provider: AI.provider, remember: AI.remember, numCtx: AI.numCtx, p: {} };
+    for (const id of Object.keys(AI.p)) copy.p[id] = { base: AI.p[id].base, model: AI.p[id].model, key: AI.remember ? AI.p[id].key : "" };
+    localStorage.setItem(AI_STORE, JSON.stringify(copy));
+  } catch (e) {}
+}
+function writeFields(){
+  const id = AI.provider, pv = PROV[id], c = provCfg(id);
+  $("provider").value = id;
+  $("baseUrl").value = c.base; $("apiKey").value = c.key; $("model").value = c.model;
+  $("numCtx").value = AI.numCtx; $("remember").checked = AI.remember;
+  $("fBase").hidden = !pv.showBase; $("fKey").hidden = !(pv.key || id === "compat");
+  $("fCtx").hidden = id !== "ollama";
+  $("apiKey").placeholder = id === "compat" ? "Only if your server needs one" : "";
+  $("model").placeholder = pv.model ? "" : "Press “List models” to choose";
+  $("provHelp").textContent = pv.help;
+  $("modelList").innerHTML = "";
+  showMsg($("aiMsg"), "");
+}
+function readFields(){
+  const c = provCfg(AI.provider);
+  c.base = $("baseUrl").value.trim() || PROV[AI.provider].base;
+  c.key = $("apiKey").value.trim(); c.model = $("model").value.trim();
+  AI.numCtx = Math.max(2048, parseInt($("numCtx").value, 10) || 16384);
+  AI.remember = $("remember").checked;
+  saveAI(); updateStatus();
+}
+function updateStatus(){
+  const el = document.getElementById("aiStatus"); if (!el) return;
+  const c = provCfg(AI.provider);
+  el.textContent = `Using ${PROV[AI.provider].label}${c.model ? " · " + c.model : " · no model chosen yet"}.`;
+}
+
+function endpoint(){
+  const c = provCfg(AI.provider), base = c.base.replace(/\/+$/, "");
+  if (AI.provider === "anthropic") return base + "/v1/messages";
+  if (AI.provider === "ollama") return base + "/api/chat";
+  return base + "/chat/completions";
+}
+function headers(){
+  const c = provCfg(AI.provider), h = { "Content-Type": "application/json" };
+  if (AI.provider === "anthropic"){
+    h["x-api-key"] = c.key; h["anthropic-version"] = "2023-06-01";
+    h["anthropic-dangerous-direct-browser-access"] = "true";
+  } else if (c.key) h["Authorization"] = "Bearer " + c.key;
+  return h;
+}
+async function httpError(res){
+  let detail = "";
+  try {
+    const t = await res.text();
+    try { const j = JSON.parse(t); detail = (j.error && (j.error.message || j.error)) || j.message || t; } catch (e) { detail = t; }
+  } catch (e) {}
+  if (typeof detail !== "string") detail = JSON.stringify(detail);
+  let hint = "";
+  if (res.status === 401 || res.status === 403) hint = "\nCheck that your API key is correct and active.";
+  if (res.status === 404) hint = "\nThe model name or server address may be wrong. Try “List models”.";
+  if (res.status === 429) hint = "\nRate limit or quota reached. Wait a moment or check your account's billing.";
+  return new Error(`The service answered ${res.status}.${detail ? "\n" + detail.slice(0, 600) : ""}${hint}`);
+}
+function networkHelp(){
+  const id = AI.provider;
+  if (id === "ollama") return "Couldn't reach Ollama. Make sure it's running at that address, and that OLLAMA_ORIGINS is set to * (then restart Ollama) so browsers are allowed to talk to it.";
+  if (id === "compat") return "Couldn't reach that server. Check the address, that the server is running, and that it allows browser (CORS) requests.";
+  return "Couldn't reach the service. Check your internet connection. This page must be opened as a file or from a normal website. It won't work inside a sandboxed preview that blocks outside requests.";
+}
+
+async function readStream(res, extract, onText){
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = "";
+  for (;;){
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0){
+      let line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line) continue;
+      if (line.startsWith("data:")) line = line.slice(5).trim();
+      else if (AI.provider !== "ollama") continue;      // ignore "event:" lines
+      if (line === "[DONE]") return;
+      let j; try { j = JSON.parse(line); } catch (e) { continue; }
+      const t = extract(j); if (t) onText(t);
+    }
+  }
+}
+const EXTRACT = {
+  anthropic: j => { if (j.type === "error") throw new Error((j.error && j.error.message) || "The service reported an error."); return j.type === "content_block_delta" && j.delta ? (j.delta.text || "") : ""; },
+  ollama: j => { if (j.error) throw new Error(j.error); return j.message ? (j.message.content || "") : ""; },
+  openai: j => (j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content) || ""
+};
+
+function mdToHtml(src){
+  const inline = t => t.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*(?![\s*])(.+?)\*(?!\*)/g, "$1<em>$2</em>");
+  const lines = esc(src).split("\n"); let out = "", para = [], list = [], table = [];
+  const flushP = () => { if (para.length){ out += `<p>${inline(para.join("<br>"))}</p>`; para = []; } };
+  const flushL = () => { if (list.length){ out += `<ul>${list.map(x => `<li>${inline(x)}</li>`).join("")}</ul>`; list = []; } };
+  const flushT = () => {
+    if (!table.length) return;
+    const rows = table.filter(r => !/^\|?\s*:?-{2,}/.test(r)).map(r => r.replace(/^\||\|$/g, "").split("|").map(c => c.trim()));
+    out += "<table>" + rows.map((r, i) => `<tr>${r.map(c => `<${i ? "td" : "th"}>${inline(c)}</${i ? "td" : "th"}>`).join("")}</tr>`).join("") + "</table>";
+    table = [];
+  };
+  const flushAll = () => { flushP(); flushL(); flushT(); };
+  for (const raw of lines){
+    const l = raw.trimEnd(); let m;
+    if (!l.trim()){ flushAll(); continue; }
+    if ((m = l.match(/^(#{1,4})\s+(.*)$/))){ flushAll(); const n = Math.min(m[1].length, 3); out += `<h${n}>${inline(m[2])}</h${n}>`; continue; }
+    if (/^\s*([-*_]\s*){3,}$/.test(l)){ flushAll(); out += "<hr>"; continue; }
+    if (/^\s*\|/.test(l)){ flushP(); flushL(); table.push(l.trim()); continue; }
+    if ((m = l.match(/^\s*[-*•]\s+(.*)$/))){ flushP(); flushT(); list.push(m[1]); continue; }
+    flushL(); flushT(); para.push(l.trim());
+  }
+  flushAll();
+  return out;
+}
+
+async function generate(){
+  if (!current) return;
+  readFields();
+  const id = AI.provider, c = provCfg(id), pv = PROV[id];
+  const err = $("genErr"), out = $("genOut"), md = $("genMd");
+  out.hidden = false; err.textContent = ""; md.innerHTML = ""; $("genActions").hidden = true; $("genCopied").textContent = "";
+  if (!c.model){ err.textContent = "No model chosen yet. Open “AI connection settings” and pick or type a model name (the “List models” button helps)."; return; }
+  if (pv.key && !c.key){ err.textContent = `${pv.label} needs an API key. Add it in “AI connection settings”.`; return; }
+
+  const user = apiUserMessage(current);
+  let body;
+  if (id === "anthropic") body = { model: c.model, max_tokens: 12000, stream: true, system: SYSTEM_PROMPT, messages: [{ role: "user", content: user }] };
+  else if (id === "ollama") body = { model: c.model, stream: true, options: { num_ctx: AI.numCtx }, messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: user }] };
+  else body = { model: c.model, stream: true, messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: user }] };
+
+  genText = ""; abortCtl = new AbortController();
+  $("gen").disabled = true; $("stopGen").hidden = false;
+  md.innerHTML = `<p class="note">Writing…</p>`;
+  try {
+    const res = await fetch(endpoint(), { method: "POST", headers: headers(), body: JSON.stringify(body), signal: abortCtl.signal });
+    if (!res.ok) throw await httpError(res);
+    await readStream(res, EXTRACT[id === "ollama" ? "ollama" : id === "anthropic" ? "anthropic" : "openai"], t => { genText += t; md.innerHTML = mdToHtml(genText); });
+    if (!genText.trim()) err.textContent = "The service answered but returned no text. Try another model.";
+  } catch (e) {
+    if (e.name === "AbortError") err.textContent = genText ? "Stopped." : "Stopped before anything was written.";
+    else if (e instanceof TypeError) err.textContent = networkHelp();
+    else err.textContent = e.message || String(e);
+  } finally {
+    $("gen").disabled = false; $("stopGen").hidden = true; abortCtl = null;
+    if (genText.trim()){ md.innerHTML = mdToHtml(genText); $("genActions").hidden = false; }
+    else if (!err.textContent) md.innerHTML = "";
+  }
+}
+
+async function listModels(){
+  readFields();
+  const id = AI.provider, c = provCfg(id), msg = $("aiMsg"), base = c.base.replace(/\/+$/, "");
+  const url = id === "anthropic" ? base + "/v1/models?limit=100" : id === "ollama" ? base + "/api/tags" : base + "/models";
+  const h = headers(); delete h["Content-Type"];
+  showMsg(msg, "Contacting the server…");
+  try {
+    const res = await fetch(url, { headers: h });
+    if (!res.ok) throw await httpError(res);
+    const j = await res.json();
+    const names = id === "ollama" ? (j.models || []).map(m => m.name) : (j.data || []).map(m => m.id);
+    $("modelList").innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join("");
+    showMsg(msg, names.length ? `Connected. ${names.length} model${names.length === 1 ? "" : "s"} found. Click the Model box to choose one.` : "Connected, but no models were listed.", "ok");
+  } catch (e) {
+    showMsg(msg, (e instanceof TypeError) ? networkHelp() : e.message, "err");
+  }
+}
+
+loadAI();
+["baseUrl","apiKey","model","numCtx","remember"].forEach(i => $(i).addEventListener("change", readFields));
+$("provider").onchange = () => { readFields(); AI.provider = $("provider").value; saveAI(); writeFields(); updateStatus(); };
+$("listModels").onclick = listModels;
+["notes","rarity","detail"].forEach(i => $(i).addEventListener("input", () => { if (current && $("prompt")) $("prompt").value = promptText(current); }));
+</script>
+</body>
+</html>
