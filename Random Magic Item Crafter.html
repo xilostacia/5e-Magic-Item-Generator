@@ -10,7 +10,7 @@
 <style>
 :root{
   --bg:#eceff1; --panel:#f8f9fa; --ink:#1b2430; --muted:#5a6675; --line:#c9d0d6;
-  --accent:#0f6b6b; --accent-ink:#ffffff; --chip:#dde5e8;
+  --accent:#0f6b6b; --accent-ink:#ffffff; --chip:#dde5e8; --err:#a12a2a; --ok:#18733f;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
@@ -18,24 +18,28 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#11171d; --panel:#192129; --ink:#e6ebef; --muted:#93a0ad; --line:#2d3945;
-    --accent:#4fc1b8; --accent-ink:#08201e; --chip:#22303a;
+    --accent:#4fc1b8; --accent-ink:#08201e; --chip:#22303a; --err:#ff8f8f; --ok:#74d69b;
   }
 }
 :root[data-theme="dark"]{
   --bg:#11171d; --panel:#192129; --ink:#e6ebef; --muted:#93a0ad; --line:#2d3945;
-  --accent:#4fc1b8; --accent-ink:#08201e; --chip:#22303a;
+  --accent:#4fc1b8; --accent-ink:#08201e; --chip:#22303a; --err:#ff8f8f; --ok:#74d69b;
 }
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"Alegreya Sans",system-ui,sans-serif;font-size:18px;line-height:1.45}
-main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+main{max-width:800px;margin:0 auto;padding:28px 18px 60px}
 h1{font-family:"Alegreya",Georgia,serif;font-size:2.3rem;line-height:1.1;margin:0 0 6px}
-.sub{color:var(--muted);margin:0 0 22px}
+.sub{color:var(--muted);margin:0 0 18px}
+.tabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:2px solid var(--line)}
+.tab{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:10px 16px;font-weight:700;color:var(--muted);margin-bottom:-2px}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:22px}
-select,button{font:inherit;border-radius:8px;border:1px solid var(--line);padding:10px 14px;background:var(--panel);color:var(--ink)}
+select,button,input[type=text],input[type=number]{font:inherit;border-radius:8px;border:1px solid var(--line);padding:10px 14px;background:var(--panel);color:var(--ink)}
 button{cursor:pointer}
 button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;font-size:1.1rem;padding:12px 22px}
-button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.small{padding:4px 10px;font-size:.9rem}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:18px}
 .skeleton{font-family:"Alegreya",Georgia,serif;font-size:1.25rem;line-height:1.5}
 .skeleton b{color:var(--accent)}
@@ -46,156 +50,314 @@ ul.tree ul{list-style:none;margin:2px 0 4px;padding-left:20px;border-left:2px so
 ul.tree li{padding:1px 0 1px 8px}
 .sec{font-weight:700;margin-top:10px}
 .note{color:var(--muted);font-size:.95rem}
-textarea{width:100%;min-height:200px;font:inherit;font-size:.95rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
+textarea{width:100%;min-height:160px;font:inherit;font-size:.95rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
 .empty{color:var(--muted);text-align:center;padding:40px 10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.row label{display:flex;align-items:center;gap:6px}
+.grow{flex:1 1 220px;min-width:0}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+input[type=number]{width:80px}
+.msg{min-height:1.4em;font-weight:500;margin:4px 0 0}
+.msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
+.dieinfo{font-weight:700;color:var(--accent)}
+.entries{list-style:none;margin:10px 0 0;padding:0;max-height:380px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.entries li{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--line)}
+.entries li:last-child{border-bottom:0}
+.idx{color:var(--muted);min-width:2.6em;text-align:right;font-variant-numeric:tabular-nums}
+.ename{flex:1;min-width:0;overflow-wrap:anywhere}
+.badge{background:var(--chip);border-radius:6px;padding:0 8px;font-size:.85rem;white-space:nowrap}
+.badge.cust{background:var(--accent);color:var(--accent-ink)}
+[hidden]{display:none !important}
 </style>
 </head>
 <body>
 <main>
   <h1>Random Magic Item Crafter</h1>
-  <p class="sub">Rolls the full skeleton from your tables, resolves every cascade, then gives you a ready-to-paste prompt for any capable AI model.</p>
+  <p class="sub">Roll the full skeleton, resolve every cascade, and copy a ready-made prompt for any capable AI. Add your own entries to any table, or remove the defaults you don't want.</p>
 
-  <div class="bar">
-    <button class="primary" id="roll">Roll an item</button>
-    <label class="note" for="forceType">Item type:</label>
-    <select id="forceType">
-      <option value="0">Random (d6)</option>
-      <option value="1">Potion / Scroll</option>
-      <option value="2">Wondrous Item</option>
-      <option value="3">Focus</option>
-      <option value="4">Armor</option>
-      <option value="5">Weapon</option>
-      <option value="6">Ring</option>
-    </select>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabRoll" aria-selected="true">Roll</button>
+    <button class="tab" role="tab" id="tabTables" aria-selected="false">Customize tables</button>
   </div>
 
-  <div id="out"><div class="empty">Press “Roll an item” to begin.</div></div>
+  <!-- ROLL TAB -->
+  <section id="paneRoll">
+    <div class="bar">
+      <button class="primary" id="roll">Roll an item</button>
+      <label class="note" for="forceType">Item type:</label>
+      <select id="forceType"></select>
+    </div>
+    <div id="out"><div class="empty">Press “Roll an item” to begin.</div></div>
+  </section>
+
+  <!-- TABLES TAB -->
+  <section id="paneTables" hidden>
+    <div class="card">
+      <h2>Add an entry</h2>
+      <div class="row">
+        <label class="note" for="tblSel">Table:</label>
+        <select id="tblSel" class="grow"></select>
+      </div>
+      <div class="row">
+        <input type="text" id="newName" class="grow" maxlength="80" placeholder="e.g. Katana" autocomplete="off">
+        <button class="primary" id="addBtn" style="font-size:1rem;padding:10px 20px">Add</button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="override"> Allow duplicates (adds even if it already exists, raising its odds)</label>
+        <label id="copiesWrap" hidden>Copies: <input type="number" id="copies" min="1" max="50" value="1"></label>
+      </div>
+      <p class="msg" id="msg" role="status"></p>
+    </div>
+
+    <div class="card">
+      <h2 id="viewTitle">Table</h2>
+      <p class="note" id="viewInfo"></p>
+      <div class="row">
+        <button class="small" id="resetTbl">Reset this table</button>
+        <span class="note" id="weaponNote"></span>
+      </div>
+      <ul class="entries" id="entries"></ul>
+      <div id="removedWrap" hidden>
+        <h3 style="margin:18px 0 0;font-size:1.05rem">Removed defaults</h3>
+        <p class="note" style="margin:2px 0 0">Not rolled. Restore one here, or re-add its exact name above.</p>
+        <ul class="entries" id="removedList" style="max-height:200px"></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Save / share your changes</h2>
+      <p class="note">Your additions and removals are saved in this browser automatically. To move them to another device or back them up, copy the text below, or paste saved text and press Import.</p>
+      <textarea id="io" spellcheck="false" placeholder="Export fills this box. Paste exported text here to import."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="exportBtn">Export</button>
+        <button id="importBtn">Import</button>
+        <button id="resetAll">Reset all tables</button>
+      </div>
+      <p class="msg" id="ioMsg" role="status"></p>
+    </div>
+  </section>
 </main>
 
 <script>
 const d = n => 1 + Math.floor(Math.random() * n);
 const node = (t, c = []) => ({ t, c });
 
-/* ---------- TABLES ---------- */
-const TYPE = ["Potion / Scroll","Wondrous Item","Focus","Armor","Weapon","Ring"];
-const FOCUS = ["Wand","Staff","Rod","Orb"];
-const ARMOR = ["Light","Medium","Heavy","Shield (not armor)","Helmet (not armor)","Etc. — gauntlets, greaves, similar (not armor)"];
-const WEAPON = {2:"Club",3:"Whip",4:"Mace",5:"Bow",6:"Staff",7:"Axe",8:"Sword",9:"Hammer",10:"Dagger",11:"Polearm",12:"Spear",13:"Trident",14:"Sickle / Scythe"};
-const WONDROUS = ["Amulet / Necklace","Bag","Barrel","Bead / Marble","Bedroll","Bell","Boat","Bowl","Book","Boots","Bottle / Cup / Jug","Box","Brazier","Brooch","Broom","Candle","Cape","Cards","Carpet / Rug","Chest","Circlet","Cloak / Coat","Crown","Dice","Dust","Eyepatch","Figurine / Statue","Flask","Gemstone","Glasses / Monocle","Gloves","Hat","Headband","Horseshoes","Instrument","Lantern","Manacles","Mirror","Needle","Pot","Quiver","Rope","Saddle","Scarf","Socks","Spyglass","String / Thread","Tent","Thimble","Waterskin","Apron","Banner / Flag","Basket","Belt","Blanket","Bracelet / Bangle","Brush / Comb","Bucket","Chalk","Compass","Doll / Puppet","Fan","Hourglass","Inkpot","Key","Kite","Lock","Magnifying Glass","Mask","Medal / Badge","Mortar and Pestle","Pillow","Pipe","Scale / Balance","Seal / Stamp","Shovel / Spade","Soap","Sundial","Teapot / Kettle","Tongs","Towel","Umbrella / Parasol","Whistle","Whetstone","Writing Quill","Abacus","Anchor","Bellows","Cage","Clock","Door Knocker","Handkerchief","Ladder","Loom","Map","Mousetrap","Platter / Tray","Pulley","Signpost","Wheel"];
-const PRIMARY = ["Summons Something","Allows Different Ability Scores to Be Used","Access Different / New Locations","Provides Abilities in Certain Weather / Conditions / Terrain","Imposes Negative Status on Target","Deals Some Type of Damage","Casts / Replicates a Spell","Gain a Racial Trait","Extra Damage to or Protection from Certain Creatures","Gives You a Boon / Extra Ability","Roll Twice","+1 and Roll Again"];
-const DAMAGE = ["Acid","Cold","Fire","Force","Lightning","Necrotic","Poison","Psychic","Radiant","Thunder"];
-const BOON = ["Increase Stats","Movement Speed / Type","Increase Crit Range / Extra Crit Damage","Temp HP","Gain Senses","Damage Resistance"];
-const ORIG = ["Celestial","Fiendish / Demonic","Primordial / Elemental","Fae","Common Species","Common Species","Common Species","Rare Species","Rare Species","Unplayable / Other Intelligent Species","Aberration","Unknown / Ancient Origin"];
-const COMMON = ["Dragonborn","Dwarf","Elf","Faun","Firbolg","Giantkin","Human","Human","Half-Elf","Half-Orc","Halfling","Orc"];
+/* ================= DEFAULT TABLES ================= */
+const DEF = {};
+function def(id, label, group, names, keys = {}){
+  DEF[id] = { id, label, group, entries: names.map((n, i) => ({ name: n, key: keys[i+1] || null })) };
+}
+const G_TYPE = "Item type & subtypes", G_PRIM = "Primary function", G_DMG = "Damage & boons",
+      G_ORIG = "Originator", G_SPEC = "Species", G_MECH = "Mechanics", G_TRAIT = "Random trait";
+
+def("type", "Magic Item Type", G_TYPE, ["Potion / Scroll","Wondrous Item","Focus","Armor","Weapon","Ring"], {2:"wondrous",3:"focus",4:"armor",5:"weapon"});
+def("focus", "Focus subtypes", G_TYPE, ["Wand","Staff","Rod","Orb"]);
+def("armor", "Armor subtypes", G_TYPE, ["Light","Medium","Heavy","Shield (not armor)","Helmet (not armor)","Etc. — gauntlets, greaves, similar (not armor)"]);
+def("weapon", "Weapons", G_TYPE, ["Club","Whip","Mace","Bow","Staff","Axe","Sword","Hammer","Dagger","Polearm","Spear","Trident","Sickle / Scythe"]);
+def("wondrous", "Wondrous Items", G_TYPE, ["Amulet / Necklace","Bag","Barrel","Bead / Marble","Bedroll","Bell","Boat","Bowl","Book","Boots","Bottle / Cup / Jug","Box","Brazier","Brooch","Broom","Candle","Cape","Cards","Carpet / Rug","Chest","Circlet","Cloak / Coat","Crown","Dice","Dust","Eyepatch","Figurine / Statue","Flask","Gemstone","Glasses / Monocle","Gloves","Hat","Headband","Horseshoes","Instrument","Lantern","Manacles","Mirror","Needle","Pot","Quiver","Rope","Saddle","Scarf","Socks","Spyglass","String / Thread","Tent","Thimble","Waterskin","Apron","Banner / Flag","Basket","Belt","Blanket","Bracelet / Bangle","Brush / Comb","Bucket","Chalk","Compass","Doll / Puppet","Fan","Hourglass","Inkpot","Key","Kite","Lock","Magnifying Glass","Mask","Medal / Badge","Mortar and Pestle","Pillow","Pipe","Scale / Balance","Seal / Stamp","Shovel / Spade","Soap","Sundial","Teapot / Kettle","Tongs","Towel","Umbrella / Parasol","Whistle","Whetstone","Writing Quill","Abacus","Anchor","Bellows","Cage","Clock","Door Knocker","Handkerchief","Ladder","Loom","Map","Mousetrap","Platter / Tray","Pulley","Signpost","Wheel"]);
+def("primary", "Primary Function", G_PRIM, ["Summons Something","Allows Different Ability Scores to Be Used","Access Different / New Locations","Provides Abilities in Certain Weather / Conditions / Terrain","Imposes Negative Status on Target","Deals Some Type of Damage","Casts / Replicates a Spell","Gain a Racial Trait","Extra Damage to or Protection from Certain Creatures","Gives You a Boon / Extra Ability","Roll Twice","+1 and Roll Again"], {6:"damage",7:"spell",10:"boon",11:"roll2",12:"plus1"});
+def("damage", "Damage types", G_DMG, ["Acid","Cold","Fire","Force","Lightning","Necrotic","Poison","Psychic","Radiant","Thunder"]);
+def("boon", "Boon / Extra Ability", G_DMG, ["Increase Stats","Movement Speed / Type","Increase Crit Range / Extra Crit Damage","Temp HP","Gain Senses","Damage Resistance"], {6:"damage"});
+def("orig", "Originator", G_ORIG, ["Celestial","Fiendish / Demonic","Primordial / Elemental","Fae","Common Species","Common Species","Common Species","Rare Species","Rare Species","Unplayable / Other Intelligent Species","Aberration","Unknown / Ancient Origin"], {2:"fiend",3:"elem",4:"fae",5:"common",6:"common",7:"common",8:"rare",9:"rare"});
+def("fiend", "Fiendish / Demonic split", G_ORIG, ["Fiend","Demon"]);
+def("elem", "Primordial / Elemental split", G_ORIG, ["Air","Earth","Water","Fire"]);
+def("fae", "Fae split", G_ORIG, ["Feywild / Auriglade","Shadowfell / Shadenoct"]);
+def("common", "Common Species", G_SPEC, ["Dragonborn","Dwarf","Elf","Faun","Firbolg","Giantkin","Human","Human","Half-Elf","Half-Orc","Halfling","Orc"]);
 const RARE = [
  ["Aasimar","Awakened Animal","Centaur","Cervan","Changeling","Corvum","Dhampir","Duergar","Eladrin","Fairy","Fey"],
  ["Gallus","Genasi","Giff","Grung","Hadozee","Harengon","Hedge","Hexblooded","Hobgoblin","Jerbeen","Kame"],
  ["Kenku","Khenra","Leonin","Lizardfolk","Locathah","Loxodon","Luma","Mapach","Minotaur","Owlin","Plasmoid"],
  ["Raptor","Reborn","Revenant","Ribbitfolk","Sea Elf","Tabaxi","Tiefling","Triton","Veilmerge","Vulpin","Warforged"]
 ];
-const MECH = ["Costs wielder something","Double Edged in Some Way","Has Charges","Awakens / Exalts","Command Word","Buttons to Activate","Requires Attunement","Usable by Spellcaster Only","Usable only by specific Species","Different features in different varieties / sizes","None","Roll Twice"];
-const COST = ["HP","GP","Exhaustion","Morality"];
-const TRAIT = ["Cursed","Anatomical Oddity","Strange Property","Material / Surface","Form / Decoration","Physical Transformation","Elemental / Environmental Theme","Supernatural Theme","Creature / Nature Theme","Exceptional"];
-const TRAIT20 = {
- 2:["Has a mouth","Has one large eye","Has many small eyes","Has teeth or fangs","Has a tongue","Has ears","Has hair","Has fur","Has visible veins","Has a heartbeat","Breathes","Blinks","Has fingers or tiny hands","Has claws or talons","Has roots","Has tendrils","Bleeds when damaged","Has a recognizable face","Has one or more vestigial limbs","Has a strange internal organ visible through part of its surface"],
- 3:["Shrinks to pocket size when not in use","Sheds light","Reacts to the presence of a certain species","Looks like a completely different mundane object","Changes appearance depending on the wielder","Changes appearance depending on the weather","Changes appearance at a particular time of day","Floats when released","Slowly rotates or turns on its own","Returns to its owner when called","Produces a faint constant sound","Whispers incomprehensibly","Is always unusually warm","Is always unusually cold","Never becomes dirty","Cannot remain wet","Leaves a temporary trail behind it","Casts an unusual shadow","Has no reflection","Occasionally moves a short distance when nobody is watching"],
- 4:["Metallic","Gem-encrusted","Camouflage coloration","Spiked","Translucent","Transparent","Mirrored","Iridescent","Pearlescent","Cracked but apparently undamaged","Covered in runes or symbols","Stone-like","Bark-like","Ivory or bone-like","Glass-like","Porcelain-like","Leather-like","Covered in fine scales","Covered in a strange lacquer or glossy coating","Made from an unusual material appropriate to its originator"],
- 5:["Fancy / Regal","Heavily ornamented","Extremely plain","Ceremonial in appearance","Primitive or crude-looking","Covered in intricate filigree","Patchwork construction","Asymmetrical","Perfectly symmetrical","Impossibly thin or delicate-looking","Unusually bulky","Oversized decorative features","Covered in repeating geometric patterns","Covered in engraved scenes","Covered in writing or inscriptions","Built from interlocking sections","Completely seamless","Decorated with chains, tassels, ribbons, or hanging pieces","Styled after an ancient or obsolete version of the object","Appears unfinished despite functioning normally"],
- 6:["Scaled","Feathered","Fur-covered","Thorny","Crystalline","Bone-like","Chitinous","Partially organic or fleshy","Appears molten","Appears frozen","Appears partially burned or charred","Appears overgrown with moss","Appears rusted or corroded without being weakened","Constantly drips water","Constantly sheds harmless ash","Constantly sheds dust, sand, or pollen","Slowly grows and retracts small protrusions","Parts of it shift or rearrange themselves","Changes size slightly while being used","Changes shape enough to look handmade differently each time it is examined"],
- 7:["Fire","Water","Air / Wind","Earth / Stone","Ice / Snow","Lightning","Storm","Ocean","River","Desert","Forest","Swamp","Mountain","Cave / Underground","Volcanic","Arctic","Jungle","Night / Moon","Dawn / Sun","Rain / Mist"],
- 8:["Spectral / Ghost","Shadow","Radiant / Holy","Necrotic / Death","Arcane","Fey","Fiendish","Celestial","Dream","Nightmare","Blood","Void","Cosmic / Stellar","Time","Fate","Memory","Illusion","Psychic","Soul","Otherworldly / Planar"],
- 9:["Dragon","Insect","Mammal","Bird / Feather","Floral / Plant / Vine","Reptile","Serpent","Aquatic creature","Arachnid","Fungal","Amphibian","Feline","Canine","Rodent","Hoofed animal","Fish","Crustacean","Mollusk","Worm / Burrowing creature","Specific beast of the creator's choice"]
-};
+RARE.forEach((g, i) => def("rare" + (i+1), "Rare Species — Group " + (i+1), G_SPEC, [...g, "Choose / Reroll"], {12:"reroll"}));
+def("mech", "Mechanics", G_MECH, ["Costs wielder something","Double Edged in Some Way","Has Charges","Awakens / Exalts","Command Word","Buttons to Activate","Requires Attunement","Usable by Spellcaster Only","Usable only by specific Species","Different features in different varieties / sizes","None","Roll Twice"], {1:"cost",12:"roll2"});
+def("cost", "Mechanics cost types", G_MECH, ["HP","GP","Exhaustion","Morality"]);
+def("trait", "Random Trait", G_TRAIT, ["Cursed","Anatomical Oddity","Strange Property","Material / Surface","Form / Decoration","Physical Transformation","Elemental / Environmental Theme","Supernatural Theme","Creature / Nature Theme","Exceptional"], {2:"tr2",3:"tr3",4:"tr4",5:"tr5",6:"tr6",7:"tr7",8:"tr8",9:"tr9",10:"exceptional"});
+def("tr2", "Trait: Anatomical Oddity", G_TRAIT, ["Has a mouth","Has one large eye","Has many small eyes","Has teeth or fangs","Has a tongue","Has ears","Has hair","Has fur","Has visible veins","Has a heartbeat","Breathes","Blinks","Has fingers or tiny hands","Has claws or talons","Has roots","Has tendrils","Bleeds when damaged","Has a recognizable face","Has one or more vestigial limbs","Has a strange internal organ visible through part of its surface"]);
+def("tr3", "Trait: Strange Property", G_TRAIT, ["Shrinks to pocket size when not in use","Sheds light","Reacts to the presence of a certain species","Looks like a completely different mundane object","Changes appearance depending on the wielder","Changes appearance depending on the weather","Changes appearance at a particular time of day","Floats when released","Slowly rotates or turns on its own","Returns to its owner when called","Produces a faint constant sound","Whispers incomprehensibly","Is always unusually warm","Is always unusually cold","Never becomes dirty","Cannot remain wet","Leaves a temporary trail behind it","Casts an unusual shadow","Has no reflection","Occasionally moves a short distance when nobody is watching"]);
+def("tr4", "Trait: Material / Surface", G_TRAIT, ["Metallic","Gem-encrusted","Camouflage coloration","Spiked","Translucent","Transparent","Mirrored","Iridescent","Pearlescent","Cracked but apparently undamaged","Covered in runes or symbols","Stone-like","Bark-like","Ivory or bone-like","Glass-like","Porcelain-like","Leather-like","Covered in fine scales","Covered in a strange lacquer or glossy coating","Made from an unusual material appropriate to its originator"]);
+def("tr5", "Trait: Form / Decoration", G_TRAIT, ["Fancy / Regal","Heavily ornamented","Extremely plain","Ceremonial in appearance","Primitive or crude-looking","Covered in intricate filigree","Patchwork construction","Asymmetrical","Perfectly symmetrical","Impossibly thin or delicate-looking","Unusually bulky","Oversized decorative features","Covered in repeating geometric patterns","Covered in engraved scenes","Covered in writing or inscriptions","Built from interlocking sections","Completely seamless","Decorated with chains, tassels, ribbons, or hanging pieces","Styled after an ancient or obsolete version of the object","Appears unfinished despite functioning normally"]);
+def("tr6", "Trait: Physical Transformation", G_TRAIT, ["Scaled","Feathered","Fur-covered","Thorny","Crystalline","Bone-like","Chitinous","Partially organic or fleshy","Appears molten","Appears frozen","Appears partially burned or charred","Appears overgrown with moss","Appears rusted or corroded without being weakened","Constantly drips water","Constantly sheds harmless ash","Constantly sheds dust, sand, or pollen","Slowly grows and retracts small protrusions","Parts of it shift or rearrange themselves","Changes size slightly while being used","Changes shape enough to look handmade differently each time it is examined"]);
+def("tr7", "Trait: Elemental / Environmental Theme", G_TRAIT, ["Fire","Water","Air / Wind","Earth / Stone","Ice / Snow","Lightning","Storm","Ocean","River","Desert","Forest","Swamp","Mountain","Cave / Underground","Volcanic","Arctic","Jungle","Night / Moon","Dawn / Sun","Rain / Mist"]);
+def("tr8", "Trait: Supernatural Theme", G_TRAIT, ["Spectral / Ghost","Shadow","Radiant / Holy","Necrotic / Death","Arcane","Fey","Fiendish","Celestial","Dream","Nightmare","Blood","Void","Cosmic / Stellar","Time","Fate","Memory","Illusion","Psychic","Soul","Otherworldly / Planar"]);
+def("tr9", "Trait: Creature / Nature Theme", G_TRAIT, ["Dragon","Insect","Mammal","Bird / Feather","Floral / Plant / Vine","Reptile","Serpent","Aquatic creature","Arachnid","Fungal","Amphibian","Feline","Canine","Rodent","Hoofed animal","Fish","Crustacean","Mollusk","Worm / Burrowing creature","Specific beast of the creator's choice"]);
 
-/* ---------- ROLL LOGIC ---------- */
-function rollDamage(){ const r = d(10); return node(`${r}: ${DAMAGE[r-1]}`); }
+/* ================= CUSTOM + REMOVED ENTRIES (persisted) ================= */
+const STORE_KEY = "magic-item-crafter-custom-v1";
+let CUSTOM = {};    // id -> [{name,key}]  added entries
+let REMOVED = {};   // id -> [{i,name}]    default entries taken out (i = index in DEF)
+
+function sanitizeCustom(obj){
+  const out = {};
+  if (!obj || typeof obj !== "object") return out;
+  for (const id of Object.keys(obj)){
+    if (!DEF[id] || !Array.isArray(obj[id])) continue;
+    const validKeys = new Set(DEF[id].entries.map(e => e.key).filter(Boolean));
+    const list = [];
+    for (const e of obj[id]){
+      if (!e || typeof e.name !== "string") continue;
+      const name = e.name.trim().slice(0, 80);
+      if (!name) continue;
+      list.push({ name, key: (typeof e.key === "string" && validKeys.has(e.key)) ? e.key : null });
+    }
+    if (list.length) out[id] = list;
+  }
+  return out;
+}
+function sanitizeRemoved(obj){
+  const out = {};
+  if (!obj || typeof obj !== "object") return out;
+  for (const id of Object.keys(obj)){
+    if (!DEF[id] || !Array.isArray(obj[id])) continue;
+    const seen = new Set(), list = [];
+    for (const r of obj[id]){
+      if (!r || !Number.isInteger(r.i) || seen.has(r.i)) continue;
+      const base = DEF[id].entries[r.i];
+      if (!base || base.name !== r.name) continue;      // only trust removals that still match
+      seen.add(r.i); list.push({ i: r.i, name: base.name });
+    }
+    if (list.length) out[id] = list;
+  }
+  return out;
+}
+function parseData(obj){
+  // new format {v:2, custom, removed}; old format was just the custom object
+  const data = (obj && obj.v === 2)
+    ? { custom: sanitizeCustom(obj.custom), removed: sanitizeRemoved(obj.removed) }
+    : { custom: sanitizeCustom(obj), removed: {} };
+  for (const id of Object.keys(data.removed)){        // never leave a table empty
+    const left = DEF[id].entries.length - data.removed[id].length + (data.custom[id] ? data.custom[id].length : 0);
+    if (left < 1) delete data.removed[id];
+  }
+  return data;
+}
+function applyData(data){ CUSTOM = data.custom; REMOVED = data.removed; }
+function loadCustom(){
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) applyData(parseData(JSON.parse(raw)));
+  } catch (e) { CUSTOM = {}; REMOVED = {}; }
+}
+function saveCustom(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ v: 2, custom: CUSTOM, removed: REMOVED })); } catch (e) {}
+}
+const isRemoved = (id, i) => (REMOVED[id] || []).some(r => r.i === i);
+function activeDefaults(id){
+  return DEF[id].entries.map((e, i) => ({ e, i })).filter(x => !isRemoved(id, x.i));
+}
+const getEntries = id => activeDefaults(id).map(x => x.e).concat(CUSTOM[id] || []);
+const isModified = id => !!((CUSTOM[id] && CUSTOM[id].length) || (REMOVED[id] && REMOVED[id].length));
+
+/* ================= ROLL LOGIC ================= */
+function rollTable(id){
+  const E = getEntries(id), n = E.length, r = d(n);
+  return { r, n, e: E[r-1] };
+}
+const lab = x => `${x.r}: ${x.e.name}`;
+function rollKeyed(id, avoid){        // reroll (bounded) while the key is in `avoid`
+  let x = rollTable(id), tries = 0;
+  while (avoid && avoid.includes(x.e.key) && tries++ < 30) x = rollTable(id);
+  return x;
+}
+function rollDamage(){ return node(lab(rollTable("damage"))); }
 
 function rollPrimary(depth, st){
-  let n = d(12);
-  if (depth > 6 && n >= 11) n = d(10);           // safety cap on runaway cascades
-  const nd = node(`${n}: ${PRIMARY[n-1]}`);
-  if (n === 6) nd.c.push(rollDamage());
-  if (n === 7){ const l = d(10); nd.c.push(node(`Spell level ${l}`)); }
-  if (n === 10){
-    const b = d(6); const bn = node(`${b}: ${BOON[b-1]}`);
-    if (b === 6) bn.c.push(rollDamage());
-    nd.c.push(bn);
+  const x = depth > 6 ? rollKeyed("primary", ["roll2","plus1"]) : rollTable("primary");
+  const nd = node(lab(x));
+  switch (x.e.key){
+    case "damage": nd.c.push(rollDamage()); break;
+    case "spell": nd.c.push(node(`Spell level ${d(10)}`)); break;
+    case "boon": {
+      const b = rollTable("boon"), bn = node(lab(b));
+      if (b.e.key === "damage") bn.c.push(rollDamage());
+      nd.c.push(bn); break;
+    }
+    case "roll2": nd.c.push(rollPrimary(depth+1, st)); nd.c.push(rollPrimary(depth+1, st)); break;
+    case "plus1": st.bonus++; nd.c.push(node("+1 magical bonus")); nd.c.push(rollPrimary(depth+1, st)); break;
   }
-  if (n === 11){ nd.c.push(rollPrimary(depth+1, st)); nd.c.push(rollPrimary(depth+1, st)); }
-  if (n === 12){ st.bonus++; nd.c.push(node("+1 magical bonus")); nd.c.push(rollPrimary(depth+1, st)); }
   return nd;
 }
 
 function rollMech(depth){
-  let n = d(12);
-  if (depth > 6 && n === 12) n = d(11);
-  const nd = node(`${n}: ${MECH[n-1]}`);
-  if (n === 1){ const c = d(4); nd.c.push(node(`Cost: ${COST[c-1]}`)); }
-  if (n === 12){ nd.c.push(rollMech(depth+1)); nd.c.push(rollMech(depth+1)); }
+  const x = depth > 6 ? rollKeyed("mech", ["roll2"]) : rollTable("mech");
+  const nd = node(lab(x));
+  if (x.e.key === "cost") nd.c.push(node("Cost: " + rollTable("cost").e.name));
+  if (x.e.key === "roll2"){ nd.c.push(rollMech(depth+1)); nd.c.push(rollMech(depth+1)); }
   return nd;
 }
 
 function rollOriginator(){
-  const n = d(12);
-  const nd = node(`${n}: ${ORIG[n-1]}`);
-  if (n === 2){ const r = d(2); nd.c.push(node(r===1?"1: Fiend":"2: Demon")); }
-  if (n === 3){ const r = d(4); nd.c.push(node(`${r}: ${["Air","Earth","Water","Fire"][r-1]}`)); }
-  if (n === 4){ const r = d(2); nd.c.push(node(r===1?"1: Feywild / Auriglade":"2: Shadowfell / Shadenoct")); }
-  if (n >= 5 && n <= 7){ const r = d(12); nd.c.push(node(`${r}: ${COMMON[r-1]}`)); }
-  if (n === 8 || n === 9){
-    const g = d(4); let r = d(12), rerolled = false;
-    while (r === 12){ r = d(12); rerolled = true; }
-    nd.c.push(node(`Group ${g}, ${r}: ${RARE[g-1][r-1]}${rerolled ? " (rolled 12 — rerolled)" : ""}`));
+  const x = rollTable("orig"), nd = node(lab(x));
+  if (x.e.key === "fiend") nd.c.push(node(lab(rollTable("fiend"))));
+  if (x.e.key === "elem")  nd.c.push(node(lab(rollTable("elem"))));
+  if (x.e.key === "fae")   nd.c.push(node(lab(rollTable("fae"))));
+  if (x.e.key === "common") nd.c.push(node(lab(rollTable("common"))));
+  if (x.e.key === "rare"){
+    const g = d(4); let y = rollTable("rare" + g), rerolled = false, tries = 0;
+    while (y.e.key === "reroll" && tries++ < 30){ y = rollTable("rare" + g); rerolled = true; }
+    nd.c.push(node(`Group ${g}, ${lab(y)}${rerolled ? " (rolled Choose / Reroll — rerolled)" : ""}`));
   }
   return nd;
 }
 
 function rollTrait(){
-  const n = d(10);
-  const nd = node(`${n}: ${TRAIT[n-1]}`);
-  if (TRAIT20[n]){ const r = d(20); nd.c.push(node(`${r}: ${TRAIT20[n][r-1]}`)); }
-  if (n === 10){ nd.c.push(node(d(2)===1 ? "Legendary (coin flip — table says choose)" : "Sentient (coin flip — table says choose)")); }
+  const x = rollTable("trait"), nd = node(lab(x));
+  if (x.e.key && x.e.key.startsWith("tr") && DEF[x.e.key]) nd.c.push(node(lab(rollTable(x.e.key))));
+  if (x.e.key === "exceptional") nd.c.push(node(d(2) === 1 ? "Legendary (coin flip — table says choose)" : "Sentient (coin flip — table says choose)"));
   return nd;
 }
 
-function rollItem(force){
-  const st = { bonus: 0 };
-  const t = force || d(6);
-  const typeNode = node(`${t}: ${TYPE[t-1]}`);
-  let subtype = "";
-  if (t === 3){ const r = d(4); typeNode.c.push(node(`${r}: ${FOCUS[r-1]}`)); subtype = FOCUS[r-1]; }
-  if (t === 4){ const r = d(6); typeNode.c.push(node(`${r}: ${ARMOR[r-1]}`)); subtype = ARMOR[r-1]; }
-  if (t === 5){ const a = d(6), b = d(8); typeNode.c.push(node(`d6 ${a} + d8 ${b} = ${a+b}: ${WEAPON[a+b]}`)); subtype = WEAPON[a+b]; }
-  if (t === 2){ const r = d(100); typeNode.c.push(node(`${r}: ${WONDROUS[r-1]}`)); subtype = WONDROUS[r-1]; }
-
-  const primary = rollPrimary(0, st);
-  const orig = rollOriginator();
-  const mech = [rollMech(0), rollMech(0)];
-  const trait = rollTrait();
-  return { type: typeNode, subtype, primary, orig, mech, trait, bonus: st.bonus, typeName: TYPE[t-1] };
+function rollWeapon(){
+  if (!isModified("weapon")){        // original bell-curve d6 + d8
+    const a = d(6), b = d(8), s = a + b, e = DEF.weapon.entries[s - 2];
+    return { text: `d6 ${a} + d8 ${b} = ${s}: ${e.name}`, name: e.name };
+  }
+  const x = rollTable("weapon");
+  return { text: lab(x), name: x.e.name };
 }
 
-/* ---------- OUTPUT ---------- */
-const esc = s => s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-function treeHTML(n){ return `<li>${esc(n.t)}${n.c.length ? `<ul>${n.c.map(treeHTML).join("")}</ul>` : ""}</li>`; }
-function treeText(n, ind = 0){ return "  ".repeat(ind) + "- " + n.t + "\n" + n.c.map(c => treeText(c, ind+1)).join(""); }
+function rollItem(forceName){
+  const st = { bonus: 0 };
+  let x;
+  if (forceName){
+    const E = getEntries("type"), idxs = E.map((e, i) => e.name === forceName ? i : -1).filter(i => i >= 0);
+    const i = idxs[d(idxs.length) - 1];
+    x = { r: i + 1, n: E.length, e: E[i] };
+  } else x = rollTable("type");
+  const typeNode = node(lab(x));
+  let subtype = "";
+  switch (x.e.key){
+    case "focus": case "armor": case "wondrous": {
+      const s = rollTable(x.e.key); typeNode.c.push(node(lab(s))); subtype = s.e.name; break;
+    }
+    case "weapon": { const w = rollWeapon(); typeNode.c.push(node(w.text)); subtype = w.name; break; }
+  }
+  return {
+    type: typeNode, subtype, typeName: x.e.name,
+    primary: rollPrimary(0, st), orig: rollOriginator(),
+    mech: [rollMech(0), rollMech(0)], trait: rollTrait(), bonus: st.bonus
+  };
+}
+
+/* ================= OUTPUT ================= */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const treeHTML = n => `<li>${esc(n.t)}${n.c.length ? `<ul>${n.c.map(treeHTML).join("")}</ul>` : ""}</li>`;
+const treeText = (n, ind = 0) => "  ".repeat(ind) + "- " + n.t + "\n" + n.c.map(c => treeText(c, ind+1)).join("");
+const flat = n => n.t.replace(/^[^:]*:\s*/, "") + (n.c.length ? " — " + n.c.map(c => c.t.replace(/^[^:]*:\s*/, "")).join(", ") : "");
 
 function rollsText(r){
-  return `Type:\n${treeText(r.type)}\nPrimary Function:\n${treeText(r.primary)}\nOriginator:\n${treeText(r.orig)}\nMechanics (two separate d12 rolls):\n${r.mech.map(m => treeText(m)).join("")}\nRandom Trait:\n${treeText(r.trait)}` +
+  return `Type:\n${treeText(r.type)}\nPrimary Function:\n${treeText(r.primary)}\nOriginator:\n${treeText(r.orig)}\nMechanics (two separate d12-style rolls on the Mechanics table):\n${r.mech.map(m => treeText(m)).join("")}\nRandom Trait:\n${treeText(r.trait)}` +
     (r.bonus ? `\nCumulative magical bonus from "+1 and Roll Again" results: +${r.bonus}\n` : "");
 }
-
 function promptText(r){
-  return `Use the attached Random Magic Item Crafter and AI Use Instructions documents. These rolls were already made for me with the crafter tables — do not reroll them. Resolve every cascade and duplicate as the instructions describe, then write the finished item in the default final format (Lore, Statistics, Rolls).
+  return `Use the attached Random Magic Item Crafter and AI Use Instructions documents. These rolls were already made for me with the crafter tables (some tables may include custom entries I added) — do not reroll them. Resolve every cascade and duplicate as the instructions describe, then write the finished item in the default final format (Lore, Statistics, Rolls).
 
 ${rollsText(r)}
 Setting notes / constraints: (none — use ordinary D&D assumptions)
 Desired rarity or playable stat block: (your call, include the complete magical rules)`;
 }
 
-let current = null;
 function render(r){
-  current = r;
   const sub = r.subtype ? ` (${r.subtype})` : "";
   document.getElementById("out").innerHTML = `
   <div class="card skeleton">
@@ -210,27 +372,208 @@ function render(r){
       <li class="sec">Type</li>${treeHTML(r.type)}
       <li class="sec">Primary Function</li>${treeHTML(r.primary)}
       <li class="sec">Originator</li>${treeHTML(r.orig)}
-      <li class="sec">Mechanics <span class="note">(two separate d12 rolls)</span></li>${r.mech.map(treeHTML).join("")}
+      <li class="sec">Mechanics <span class="note">(two separate rolls)</span></li>${r.mech.map(treeHTML).join("")}
       <li class="sec">Random Trait</li>${treeHTML(r.trait)}
     </ul>
   </div>
   <div class="card">
     <h2>Prompt for your AI</h2>
     <p class="note">Give your AI both crafter documents (the tables and the AI instructions), then paste this.</p>
-    <textarea id="prompt" readonly></textarea>
+    <textarea id="prompt" readonly style="min-height:200px"></textarea>
     <p><button id="copy">Copy prompt</button> <span class="note" id="copied"></span></p>
   </div>`;
   const ta = document.getElementById("prompt");
   ta.value = promptText(r);
   document.getElementById("copy").onclick = async () => {
-    try { await navigator.clipboard.writeText(ta.value); }
-    catch (e) { ta.select(); try { document.execCommand("copy"); } catch (_) {} }
+    await copyText(ta);
     document.getElementById("copied").textContent = "Copied.";
   };
 }
-function flat(n){ return n.t.replace(/^[^:]*:\s*/, "") + (n.c.length ? " — " + n.c.map(c => c.t.replace(/^[^:]*:\s*/, "")).join(", ") : ""); }
+async function copyText(ta){
+  try { await navigator.clipboard.writeText(ta.value); }
+  catch (e) { ta.select(); try { document.execCommand("copy"); } catch (_) {} }
+}
 
-document.getElementById("roll").onclick = () => render(rollItem(+document.getElementById("forceType").value));
+/* ================= TABLE EDITOR ================= */
+const $ = id => document.getElementById(id);
+
+function norm(s){
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim()
+          .split(" ").map(w => (w.length > 3 && w.endsWith("s")) ? w.slice(0, -1) : w).join(" ");
+}
+function parts(s){ return s.split("/").map(norm).filter(Boolean); }
+
+function findDuplicate(id, name){
+  const wanted = norm(name), E = getEntries(id);
+  for (let i = 0; i < E.length; i++){
+    if (norm(E[i].name) === wanted || parts(E[i].name).includes(wanted)) return { i, e: E[i] };
+  }
+  return null;
+}
+
+function fillSelects(){
+  // table picker, grouped
+  const sel = $("tblSel"), prev = sel.value || "weapon";
+  const groups = {};
+  Object.values(DEF).forEach(t => (groups[t.group] = groups[t.group] || []).push(t));
+  sel.innerHTML = Object.keys(groups).map(g =>
+    `<optgroup label="${esc(g)}">${groups[g].map(t => `<option value="${t.id}">${esc(t.label)}</option>`).join("")}</optgroup>`).join("");
+  sel.value = prev;
+  fillTypeSelect();
+}
+function fillTypeSelect(){
+  const s = $("forceType"), prev = s.value;
+  const names = [...new Set(getEntries("type").map(e => e.name))];
+  s.innerHTML = `<option value="">Random</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  if (names.includes(prev)) s.value = prev;
+}
+
+function showMsg(el, text, kind){ el.textContent = text; el.className = "msg " + (kind || ""); }
+
+function renderTable(){
+  const id = $("tblSel").value, t = DEF[id];
+  const defs = activeDefaults(id), custom = CUSTOM[id] || [], removed = REMOVED[id] || [];
+  const L = [];
+  defs.forEach(x => L.push({ e: x.e, src: "def", ref: x.i }));
+  custom.forEach((e, j) => L.push({ e, src: "cust", ref: j }));
+  const n = L.length;
+  $("viewTitle").textContent = t.label;
+  const each = (100 / n).toFixed(n > 200 ? 2 : 1);
+  const bits = [`${defs.length} default`];
+  if (removed.length) bits.push(`${removed.length} removed`);
+  if (custom.length) bits.push(`${custom.length} custom`);
+  $("viewInfo").innerHTML = `Rolled as <span class="dieinfo">d${n}</span> — ${n} entries (${bits.join(", ")}), about ${each}% each.`;
+  $("weaponNote").textContent = (id === "weapon")
+    ? (isModified("weapon") ? "Weapons table has been changed: rolls use a flat dN instead of the original d6 + d8 bell curve." : "Unchanged: uses the original d6 + d8 roll (totals 2–14).")
+    : "";
+  const counts = {};
+  L.forEach(x => { const k = norm(x.e.name); counts[k] = (counts[k] || 0) + 1; });
+  const ul = $("entries");
+  ul.innerHTML = L.map((x, i) => {
+    const c = counts[norm(x.e.name)];
+    const dupe = c > 1 ? `<span class="badge">×${c} · ${(100 * c / n).toFixed(1)}%</span>` : "";
+    const cust = x.src === "cust" ? `<span class="badge cust">custom</span>` : "";
+    const dis = n <= 1 ? ` disabled title="A table needs at least one entry"` : "";
+    return `<li><span class="idx">${i + 1}</span><span class="ename">${esc(x.e.name)}</span>${dupe}${cust}<button class="small" data-src="${x.src}" data-ref="${x.ref}"${dis} aria-label="Remove ${esc(x.e.name)}">Remove</button></li>`;
+  }).join("");
+  ul.querySelectorAll("[data-src]").forEach(b => b.onclick = () => {
+    const ref = +b.dataset.ref; let name, key;
+    if (b.dataset.src === "def"){
+      const base = DEF[id].entries[ref]; name = base.name; key = base.key;
+      (REMOVED[id] = REMOVED[id] || []).push({ i: ref, name });
+    } else {
+      const rm = CUSTOM[id].splice(ref, 1)[0]; name = rm.name; key = rm.key;
+      if (!CUSTOM[id].length) delete CUSTOM[id];
+    }
+    saveCustom(); fillTypeSelect(); renderTable();
+    showMsg($("msg"), `Removed "${name}". ${t.label} is now d${getEntries(id).length}.` + (key ? " Its special rules were removed with it." : ""), "ok");
+  });
+
+  $("removedWrap").hidden = !removed.length;
+  $("removedList").innerHTML = removed.slice().sort((a, b) => a.i - b.i).map(r =>
+    `<li><span class="idx">${r.i + 1}</span><span class="ename">${esc(r.name)}</span><button class="small" data-restore="${r.i}" aria-label="Restore ${esc(r.name)}">Restore</button></li>`).join("");
+  $("removedList").querySelectorAll("[data-restore]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.restore;
+    REMOVED[id] = REMOVED[id].filter(r => r.i !== i);
+    if (!REMOVED[id].length) delete REMOVED[id];
+    saveCustom(); fillTypeSelect(); renderTable();
+    showMsg($("msg"), `Restored "${DEF[id].entries[i].name}". ${t.label} is now d${getEntries(id).length}.`, "ok");
+  });
+}
+
+function addEntry(){
+  const id = $("tblSel").value, t = DEF[id], msg = $("msg");
+  const name = $("newName").value.trim().replace(/\s+/g, " ");
+  if (!name){ showMsg(msg, "Type something to add first.", "err"); return; }
+  const override = $("override").checked;
+  let copies = 1;
+  if (override) copies = Math.max(1, Math.min(50, parseInt($("copies").value, 10) || 1));
+
+  const dup = findDuplicate(id, name);
+  if (dup && !override){
+    showMsg(msg, `"${name}" is already in ${t.label} (as "${dup.e.name}", #${dup.i + 1}). Tick "Allow duplicates" to add it anyway.`, "err");
+    return;
+  }
+  // re-adding the exact name of a removed default restores it (with its special rules)
+  const rem = !dup && (REMOVED[id] || []).find(r => norm(r.name) === norm(name));
+  if (rem){
+    REMOVED[id] = REMOVED[id].filter(r => r.i !== rem.i);
+    if (!REMOVED[id].length) delete REMOVED[id];
+    const base = DEF[id].entries[rem.i];
+    const extra = CUSTOM[id] = CUSTOM[id] || [];
+    for (let i = 1; i < copies; i++) extra.push({ name: base.name, key: base.key });
+    if (!extra.length) delete CUSTOM[id];
+    saveCustom(); fillTypeSelect(); renderTable();
+    $("newName").value = ""; $("newName").focus();
+    showMsg(msg, `Restored the default "${base.name}"${copies > 1 ? ` plus ${copies - 1} extra cop${copies > 2 ? "ies" : "y"}` : ""}. ${t.label} is now d${getEntries(id).length}.`, "ok");
+    return;
+  }
+  // an exact duplicate inherits the original's special behavior (e.g. a second "Roll Twice")
+  let key = null;
+  if (dup && norm(dup.e.name) === norm(name)) key = dup.e.key;
+  const list = CUSTOM[id] = CUSTOM[id] || [];
+  for (let i = 0; i < copies; i++) list.push({ name: dup && norm(dup.e.name) === norm(name) ? dup.e.name : name, key });
+  saveCustom(); fillTypeSelect(); renderTable();
+  $("newName").value = "";
+  $("newName").focus();
+  showMsg(msg, `Added "${name}"${copies > 1 ? ` ×${copies}` : ""}${dup ? " (duplicate)" : ""}. ${t.label} is now d${getEntries(id).length}.`, "ok");
+}
+
+/* two-click confirm for destructive buttons */
+function confirmClick(btn, action, label){
+  let armed = false, timer;
+  btn.onclick = () => {
+    if (!armed){
+      armed = true; btn.textContent = "Click again to confirm";
+      timer = setTimeout(() => { armed = false; btn.textContent = label; }, 3000);
+    } else { clearTimeout(timer); armed = false; btn.textContent = label; action(); }
+  };
+}
+
+/* ================= WIRING ================= */
+function showTab(which){
+  const roll = which === "roll";
+  $("paneRoll").hidden = !roll; $("paneTables").hidden = roll;
+  $("tabRoll").setAttribute("aria-selected", roll);
+  $("tabTables").setAttribute("aria-selected", !roll);
+  if (!roll) renderTable();
+}
+
+loadCustom();
+fillSelects();
+$("tabRoll").onclick = () => showTab("roll");
+$("tabTables").onclick = () => showTab("tables");
+$("roll").onclick = () => render(rollItem($("forceType").value));
+$("tblSel").onchange = () => { showMsg($("msg"), ""); renderTable(); };
+$("addBtn").onclick = addEntry;
+$("newName").addEventListener("keydown", e => { if (e.key === "Enter") addEntry(); });
+$("override").onchange = () => { $("copiesWrap").hidden = !$("override").checked; if (!$("override").checked) $("copies").value = 1; };
+
+confirmClick($("resetTbl"), () => {
+  const id = $("tblSel").value; delete CUSTOM[id]; delete REMOVED[id]; saveCustom(); fillTypeSelect(); renderTable();
+  showMsg($("msg"), `${DEF[id].label} reset to its defaults.`, "ok");
+}, "Reset this table");
+confirmClick($("resetAll"), () => {
+  CUSTOM = {}; REMOVED = {}; saveCustom(); fillTypeSelect(); renderTable();
+  showMsg($("ioMsg"), "All tables reset to defaults.", "ok");
+}, "Reset all tables");
+
+$("exportBtn").onclick = async () => {
+  const ta = $("io");
+  ta.value = JSON.stringify({ v: 2, custom: CUSTOM, removed: REMOVED }, null, 1);
+  await copyText(ta);
+  showMsg($("ioMsg"), (Object.keys(CUSTOM).length || Object.keys(REMOVED).length) ? "Exported and copied." : "No changes yet — the export is empty.", "ok");
+};
+$("importBtn").onclick = () => {
+  try {
+    const data = parseData(JSON.parse($("io").value));
+    applyData(data); saveCustom(); fillTypeSelect(); renderTable();
+    const tables = new Set([...Object.keys(data.custom), ...Object.keys(data.removed)]).size;
+    showMsg($("ioMsg"), `Imported changes for ${tables} table(s).`, "ok");
+  } catch (e) {
+    showMsg($("ioMsg"), "Couldn't read that. Paste exactly what Export produced.", "err");
+  }
+};
 </script>
 </body>
 </html>
